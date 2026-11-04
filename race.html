@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ラクじゃないレース 台本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="tk-page">
+<header class="app-header">
+  <h1 class="app-title"><span class="logo" aria-hidden="true">台</span>イベント台本メーカー</h1>
+  <nav class="app-nav" aria-label="ページ切替">
+    <a href="index.html">台本エディタ</a>
+    <a href="taikai.html">ぼーっとする大会</a>
+    <a href="race.html" aria-current="page">ラクじゃないレース</a>
+  </nav>
+  <span class="save-status" id="saveStatus" role="status" aria-live="polite"></span>
+</header>
+
+<main class="tk-main" id="main"></main>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo" hidden>元に戻す</button></div>
+
+<dialog id="newDlg">
+  <h2>新しいレース台本を作る</h2>
+  <p>開催の形を選んでください。あとから切り替えることもできます（切り替えても入力内容はそのままです）。</p>
+  <div class="tk-choice" id="newChoices"></div>
+  <div class="actions"><button class="btn btn-secondary" id="newCancel">キャンセル</button></div>
+</dialog>
+
+<dialog id="shareDlg">
+  <h2>共有リンクを発行しました</h2>
+  <p>リンクはクリップボードにコピー済みです。開いた人は閲覧とPDFダウンロードができ、「コピーして編集する」で自分用に編集もできます。</p>
+  <div class="field"><label for="shareUrl">共有リンク</label><input class="input" id="shareUrl" readonly></div>
+  <p class="hint">リンクには発行した時点の内容が入っています。内容を直したら、もう一度発行してください。</p>
+  <div class="actions">
+    <button class="btn btn-secondary" id="shareCopy">もう一度コピー</button>
+    <button class="btn btn-primary" id="shareClose">閉じる</button>
+  </div>
+</dialog>
+
+<dialog id="confirmDlg">
+  <h2 id="confirmTitle">確認</h2>
+  <p id="confirmMsg"></p>
+  <div class="actions">
+    <button class="btn btn-secondary" id="confirmCancel">キャンセル</button>
+    <button class="btn btn-primary" id="confirmOk">削除する</button>
+  </div>
+</dialog>
+
+<script src="share.js"></script>
+<script src="race.js"></script>
+<script src="template-page.js"></script>
+</body>
+</html>

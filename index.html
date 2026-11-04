@@ -15,6 +15,7 @@
   <nav class="app-nav" aria-label="ページ切替">
     <a href="index.html" aria-current="page">台本エディタ</a>
     <a href="taikai.html">ぼーっとする大会</a>
+    <a href="race.html">ラクじゃないレース</a>
   </nav>
   <span class="save-status" id="saveStatus" role="status" aria-live="polite"></span>
 </header>
@@ -236,6 +237,7 @@ function renderEmpty(){
         ${Object.entries(TEMPLATES).map(([k,t]) => `
           <button class="template-card" data-tpl="${k}"><strong>${esc(t.name)}</strong><span>${esc(t.desc)}</span></button>`).join('')}
         <a class="template-card" href="taikai.html" style="text-decoration:none"><strong>ぼーっとする大会</strong><span>定型の台詞はそのまま、変わる部分だけ入力して作る専用ページへ</span></a>
+        <a class="template-card" href="race.html" style="text-decoration:none"><strong>ラクじゃないレース</strong><span>物流業界の競技大会。競技・スポンサー・賞品を入力して作る専用ページへ</span></a>
       </div>
     </div>`;
 }

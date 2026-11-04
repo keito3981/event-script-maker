@@ -78,7 +78,8 @@ const SECTIONS = [
     {k:'mainShort', label:'メインスポンサー（略称）', type:'text'},
     {k:'brand', label:'ブランド・商品名', type:'text'},
     {k:'booth', label:'投票板・ブースの場所', type:'text', hint:'例：競技場後方、MEGURIブースの隣'},
-    {k:'sponsors', label:'協賛社紹介（競技終了後に読み上げ）', type:'list'},
+    {k:'sponsors', label:'協賛社紹介（競技終了後に読み上げ）', type:'list', addLabel:'協賛社を追加', itemLabel:i => `${i + 1}社目`,
+      item:[{k:'name', label:'会社名', placeholder:'会社名（「様」は自動で付きます）'}, {k:'text', label:'紹介文', type:'textarea', rows:3}]},
   ]},
   {id:'rules', title:'受付・審査・おたすけカード', fields:[
     {k:'handouts', label:'受付での配布物', type:'text'},
@@ -744,12 +745,12 @@ ${c.bannerLines.length ? c.bannerLines.map((_, i) => `【ロールバナー：{{
 {{prizeIntro}}`, staff:'※景品と机をステージに配置'});
 
   const afterEnd = 2 + (c.prizeIntroOn ? 4 : 0);
-  (c.sponsors || []).filter(s => s.name).forEach((s, i) => {
+  c.L.sponsors.forEach((s, i) => {
     B.push({at:add(c.compEnd, afterEnd + i * 2), stage:'', scene:`協賛社紹介（${s.name}様）`, sponsor:i, script:
-      (i === 0 ? 'では、この時間を使って、今大会の協賛社さまのご紹介をさせていただきます。\n\n' : '') + `${i + 1}社目は、__SP_NAME_${i}__様です。\n__SP_TEXT_${i}__`});
+      (i === 0 ? 'では、この時間を使って、今大会の協賛社さまのご紹介をさせていただきます。\n\n' : '') + `${i + 1}社目は、__L_sponsors_${i}_name__様です。\n__L_sponsors_${i}_text__`});
   });
 
-  const nSp = (c.sponsors || []).filter(s => s.name).length;
+  const nSp = c.L.sponsors.length;
   push(true, {at:add(c.compEnd, afterEnd + nSp * 2), stage:'※MC：会場に降りて、選手にインタビュー', scene:'選手インタビュー', script:
 `では、この時間を使って、選手の皆さまに感想をお聞きしてみましょうか！
 
@@ -882,5 +883,33 @@ function rough(c){
   return R;
 }
 
-window.Taikai = {SECTIONS, BASE, LICENSE, computed, blocks, rough, toMin, add};
+window.EVENT = {
+  key:'taikai', title:'ぼーっとする大会', unit:'大会',
+  intro:'毎回入れている定型の台詞はそのままに、日時・会場・テーマ・スポンサーなど変わる部分だけを入力して台本を作ります。',
+  modes:{
+    own:{label:'自社主催', desc:'TOKYO大会のようにVISが主催する大会。第4回TOKYO大会の内容が入った状態で始まります。', defaults:BASE, created:'第4回TOKYO大会の内容で台本を作りました'},
+    license:{label:'ライセンスアウト', desc:'企業・施設が主催する特別版の大会。テレビ朝日・イオンの台本をもとに、○○の部分を埋めていきます。', defaults:{...BASE, ...LICENSE}, created:'ライセンスアウトの台本を作りました。○○の部分を埋めてください'},
+  },
+  SECTIONS, computed, blocks, rough,
+  openSections:['basic','options','time'],
+  head:'{{dateLabel}}　＠{{facility}}　{{venue}}',
+  alias:{compEnd:'duration', countdown:'duration', closeTime:'award', lotteryGather:'lottery', dateLabel:'date', tallyMin:'award', patrol:'woopsOn', bannerLine:'bannerText'},
+  cols:[
+    {k:'at', label:'TIME', w:'56px', raw:true},
+    {k:'lap', label:'LAP', w:'40px', raw:true},
+    {k:'stage', label:'STAGE', w:'15%', pw:'11%', role:'speaker'},
+    {k:'scene', label:'SCENE', w:'13%', pw:'10%', cls:'scene', role:'title'},
+    {k:'script', label:'SCRIPT', cls:'script', main:true, role:'line'},
+    {k:'music', label:'MUSIC', w:'15%', pw:'12%', role:'sound'},
+    {k:'staff', label:'STAFF', w:'12%', pw:'9%', role:'note'},
+  ],
+  roughCols:[
+    {k:'time', label:'TIME', w:'110px', raw:true},
+    {k:'scene', label:'SCENE', w:'22%'},
+    {k:'detail', label:'詳細'},
+    {k:'note', label:'備考', w:'22%'},
+  ],
+  editorVenue:'{{facility}} {{venue}}',
+  editorType:b => /協賛|スポンサー|実演/.test(b.scene) ? 'talk' : /発表|表彰|写真|登場|退場/.test(b.scene) ? 'show' : /【MC】/.test(b.stage) ? 'mc' : 'progress',
+};
 })();
