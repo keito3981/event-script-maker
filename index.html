@@ -170,11 +170,29 @@ function createScript(tplKey){
     rows: tpl.rows(), updatedAt: Date.now(),
   };
   state.scripts.unshift(s);
-  state.currentId = s.id;
   view = 'edit';
-  save(true); render();
+  openScript(s.id);
   setTimeout(() => document.getElementById('f-title')?.select(), 0);
 }
+
+/* 作成画面（テンプレート選択）と台本の行き来。ブラウザの「戻る」でも作成画面に戻れる */
+function openScript(id){
+  const fromHome = !current();
+  leaveShared();
+  state.currentId = id; save(true);
+  if (fromHome) history.pushState({view:'edit', id}, '');
+  render(); scrollTo(0, 0);
+}
+function goHome(){
+  if (history.state?.view === 'edit') return history.back();
+  leaveShared(); state.currentId = null; save(true); render(); scrollTo(0, 0);
+}
+window.addEventListener('popstate', e => {
+  if (shared) return;
+  const id = e.state?.view === 'edit' ? e.state.id : null;
+  state.currentId = id && state.scripts.some(x => x.id === id) ? id : null;
+  save(true); render();
+});
 
 /* ---------- 描画 ---------- */
 const $main = document.getElementById('main');
@@ -185,6 +203,9 @@ function render(){
   const s = current();
   if (!s) return renderEmpty();
   $main.innerHTML = `
+    <div class="no-print" style="margin-bottom:16px">
+      <button class="btn btn-secondary btn-sm" data-act="home">← 新しい台本の作成画面へ</button>
+    </div>
     <div class="toolbar no-print">
       <div class="tabs" role="tablist" aria-label="表示切替">
         <button class="tab" role="tab" aria-selected="${view==='edit'}" data-view="edit">編集</button>
@@ -391,13 +412,13 @@ document.addEventListener('input', e => {
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
 
-  if (b.id === 'newBtn'){ leaveShared(); state.currentId = null; renderList(); renderEmpty(); return; }
+  if (b.id === 'newBtn' || b.dataset.act === 'home'){ goHome(); return; }
   if (b.id === 'shareClose'){ document.getElementById('shareDlg').close(); return; }
   if (b.id === 'shareCopy'){ await Share.copy(document.getElementById('shareUrl').value); toast('コピーしました'); return; }
   if (b.id === 'importBtn'){ document.getElementById('importFile').click(); return; }
   if (b.id === 'toastUndo'){ undoFn && undoFn(); hideToast(); return; }
   if (b.dataset.tpl){ createScript(b.dataset.tpl); return; }
-  if (b.dataset.open){ leaveShared(); state.currentId = b.dataset.open; save(true); render(); return; }
+  if (b.dataset.open){ openScript(b.dataset.open); return; }
   if (b.dataset.view){ view = b.dataset.view; render(); return; }
 
   if (b.dataset.act === 'pdf'){
