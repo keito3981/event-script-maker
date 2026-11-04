@@ -7,11 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261104c">
 </head>
 <body>
 <header class="app-header">
-  <h1 class="app-title"><span class="logo" aria-hidden="true">台</span>イベント台本メーカー</h1>
+  <h1 class="app-title"><a href="index.html#home"><span class="logo" aria-hidden="true">台</span>イベント台本メーカー</a></h1>
+  <a class="home-link" href="index.html#home" title="テンプレートを選んで新しい台本を作る画面に戻ります">← メイン画面へ</a>
   <nav class="app-nav" aria-label="ページ切替">
     <a href="index.html" aria-current="page">台本エディタ</a>
     <a href="taikai.html">ぼーっとする大会</a>
@@ -57,7 +58,7 @@
   </div>
 </dialog>
 
-<script src="share.js"></script>
+<script src="share.js?v=20261104c"></script>
 <script>
 (() => {
 'use strict';
@@ -621,7 +622,10 @@ function leaveShared(){
   if (!shared) return;
   shared = null; history.replaceState(null, '', location.pathname);
 }
-window.addEventListener('hashchange', () => { if (location.hash.startsWith('#s=')) location.reload(); });
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith('#s=')) return location.reload();
+  if (location.hash === '#home'){ history.replaceState(null, '', location.pathname); leaveShared(); state.currentId = null; save(true); render(); scrollTo(0, 0); }
+});
 
 (async () => {
   const data = await Share.readLink('s');
@@ -630,7 +634,10 @@ window.addEventListener('hashchange', () => { if (location.hash.startsWith('#s='
     shared = {...data, id:'shared', rows:data.rows.map(r => ({...r, id:uid()}))};
     document.title = (shared.title || '台本') + '｜共有された台本';
   }
-  if (!state.currentId && state.scripts[0]) state.currentId = state.scripts[0].id;
+  if (location.hash === '#home'){
+    state.currentId = null;
+    history.replaceState(null, '', location.pathname);
+  } else if (!state.currentId && state.scripts[0]) state.currentId = state.scripts[0].id;
   render();
 })();
 })();
