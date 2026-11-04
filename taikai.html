@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ぼーっとする大会 台本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="tk-page">
+<header class="app-header">
+  <h1 class="app-title"><span class="logo" aria-hidden="true">台</span>イベント台本メーカー</h1>
+  <nav class="app-nav" aria-label="ページ切替">
+    <a href="index.html">台本エディタ</a>
+    <a href="taikai.html" aria-current="page">ぼーっとする大会</a>
+  </nav>
+  <span class="save-status" id="saveStatus" role="status" aria-live="polite"></span>
+</header>
+
+<main class="tk-main" id="main"></main>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo" hidden>元に戻す</button></div>
+
+<dialog id="newDlg">
+  <h2>新しい大会台本を作る</h2>
+  <p>開催の形を選んでください。あとから切り替えることもできます。</p>
+  <div class="tk-choice">
+    <button class="template-card" data-new="own"><strong>自社主催</strong><span>TOKYO大会のようにVISが主催する大会。第4回TOKYO大会の内容が入った状態で始まります。</span></button>
+    <button class="template-card" data-new="license"><strong>ライセンスアウト</strong><span>企業・団体が主催する大会。主催者名や主催者挨拶の枠が入り、○○の部分を埋めていきます。</span></button>
+  </div>
+  <div class="actions"><button class="btn btn-secondary" id="newCancel">キャンセル</button></div>
+</dialog>
+
+<dialog id="shareDlg">
+  <h2>共有リンクを発行しました</h2>
+  <p>リンクはクリップボードにコピー済みです。開いた人は閲覧とPDFダウンロードができ、「コピーして編集する」で自分用に編集もできます。</p>
+  <div class="field"><label for="shareUrl">共有リンク</label><input class="input" id="shareUrl" readonly></div>
+  <p class="hint">リンクには発行した時点の内容が入っています。内容を直したら、もう一度発行してください。</p>
+  <div class="actions">
+    <button class="btn btn-secondary" id="shareCopy">もう一度コピー</button>
+    <button class="btn btn-primary" id="shareClose">閉じる</button>
+  </div>
+</dialog>
+
+<dialog id="confirmDlg">
+  <h2 id="confirmTitle">確認</h2>
+  <p id="confirmMsg"></p>
+  <div class="actions">
+    <button class="btn btn-secondary" id="confirmCancel">キャンセル</button>
+    <button class="btn btn-primary" id="confirmOk">削除する</button>
+  </div>
+</dialog>
+
+<script src="share.js"></script>
+<script src="taikai.js"></script>
+<script>
+(() => {
+'use strict';
+const {SECTIONS, BASE, LICENSE, computed, blocks, rough, toMin} = window.Taikai;
+const STORE_KEY = 'event-script-maker:taikai:v1';
+const EDITOR_KEY = 'event-script-maker:v1';
+const MODES = {own:'自社主催', license:'ライセンスアウト'};
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const FIELDS = Object.fromEntries(SECTIONS.flatMap(s => s.fields.map(f => [f.k, {...f, section:s.id}])));
+/* 計算で出す項目は、元になった入力項目に飛ぶ */
+const ALIAS = {compEnd:'duration', countdown:'duration', closeTime:'award', lotteryGather:'lottery', dateLabel:'date'};
+
+/* ---------- 状態 ---------- */
+let state = load();
+let shared = null;               // 共有リンクで開いたときの内容
+let openSections = new Set(['basic','options','time']);
+let undoFn = null;
+
+function load(){
+  try { const d = JSON.parse(localStorage.getItem(STORE_KEY)); if (d && Array.isArray(d.drafts)) return d; } catch(e) {}
+  return {drafts:[], currentId:null};
+}
+let saveTimer;
+function save(now){
+  clearTimeout(saveTimer);
+  const run = () => {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); setStatus('保存しました ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})); }
+    catch(e) { setStatus('保存できませんでした（ブラウザの設定をご確認ください）'); }
+  };
+  setStatus('保存中…');
+  now ? run() : (saveTimer = setTimeout(run, 400));
+}
+const setStatus = t => document.getElementById('saveStatus').textContent = t;
+const current = () => shared || state.drafts.find(d => d.id === state.currentId) || null;
+
+const defaults = mode => ({...clone(BASE), ...(mode === 'license' ? clone(LICENSE) : {})});
+/* 共有リンクを短くするため、初期値から変えた項目だけを入れる */
+const diff = (mode, vars) => { const base = defaults(mode); return Object.fromEntries(Object.entries(vars).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(base[k]))); };
+
+function createDraft(mode){
+  const vars = defaults(mode);
+  const d = {id:uid(), mode, vars, updatedAt:Date.now()};
+  state.drafts.unshift(d); state.currentId = d.id;
+  save(true); render();
+  toast(mode === 'license' ? 'ライセンスアウトの台本を作りました。○○の部分を埋めてください' : '第4回TOKYO大会の内容で台本を作りました');
+}
+
+/* ---------- 定型文に入力内容を差し込む ---------- */
+function fill(tpl, c, html){
+  let s = String(tpl ?? ''), m;
+  const sec = /\{\{([#^])(\w+)\}\}([\s\S]*?)\{\{\/\2\}\}/;
+  while ((m = sec.exec(s))){
+    const val = c[m[2]];
+    const on = Array.isArray(val) ? val.length > 0 : typeof val === 'string' ? val.trim() !== '' : !!val;
+    s = s.slice(0, m.index) + ((m[1] === '#') === on ? m[3] : '') + s.slice(m.index + m[0].length);
+  }
+  s = s.replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
+  const out = s.split(/(\{\{\w+\}\}|__SP_(?:NAME|TEXT)_\d+__)/).map(p => {
+    let k, val, label;
+    if ((m = /^\{\{(\w+)\}\}$/.exec(p))){
+      const base = m[1].replace(/_jp$/, '');
+      k = ALIAS[base] || base; val = c[m[1]];
+      label = FIELDS[k]?.label || k;
+    } else if ((m = /^__SP_(NAME|TEXT)_(\d+)__$/.exec(p))){
+      const sp = c.sponsorsF[+m[2]] || {};
+      k = 'sponsors'; val = m[1] === 'NAME' ? sp.name : sp.text; label = '協賛社紹介';
+    } else return html ? esc(p) : p;
+    const str = val == null ? '' : String(val);
+    if (!html) return str || `［${label}］`;
+    return `<mark class="var${str ? '' : ' empty'}" data-k="${k}" title="${esc(label)}（クリックで入力欄へ）">${str ? esc(str) : '［' + esc(label) + '］'}</mark>`;
+  }).join('');
+  if (!html) return out;
+  return out.split('\n').map(line => {
+    const t = line.replace(/<[^>]+>/g, '');
+    if (/^[【《＝]/.test(t)) return `<span class="cue">${line}</span>`;
+    if (/^※/.test(t)) return `<span class="note">${line}</span>`;
+    if (/^[◆⚫︎]/.test(t)) return `<span class="head">${line}</span>`;
+    return line;
+  }).join('\n');
+}
+
+function ctx(d){
+  const c = computed({...d.vars, mode:d.mode});
+  c.sponsorsF = (d.vars.sponsors || []).filter(s => s.name);
+  return c;
+}
+
+/* ---------- 描画 ---------- */
+const $main = document.getElementById('main');
+
+function render(){
+  const d = current();
+  if (shared) return renderShared();
+  if (!d) return renderEmpty();
+  $main.innerHTML = `
+    <div class="tk-bar">
+      <div class="tk-bar-left">
+        <label class="visually-hidden" for="draftSel">台本を切り替え</label>
+        <select class="select tk-draft" id="draftSel">
+          ${state.drafts.map(x => `<option value="${x.id}" ${x.id===d.id?'selected':''}>${esc(x.vars.name || '無題の大会')}（${MODES[x.mode]}）</option>`).join('')}
+        </select>
+        <button class="btn btn-tertiary btn-sm" data-act="new">＋ 新しい大会</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary btn-sm" data-act="share">共有リンクを発行</button>
+        <button class="btn btn-secondary btn-sm" data-act="pdf">PDFダウンロード</button>
+        <button class="btn btn-secondary btn-sm" data-act="to-editor">エディタで細かく編集</button>
+        <button class="btn btn-tertiary btn-sm" data-act="dup">複製</button>
+        <button class="btn btn-danger btn-sm" data-act="del">削除</button>
+      </div>
+    </div>
+    <div class="tk-mode" role="radiogroup" aria-label="開催の形">
+      <span class="label">開催の形</span>
+      ${Object.entries(MODES).map(([k,l]) => `<label class="tk-radio"><input type="radio" name="mode" value="${k}" ${d.mode===k?'checked':''}> ${l}</label>`).join('')}
+      <span class="hint">色の付いた文字が入力した内容です。クリックすると入力欄に移動します。</span>
+    </div>
+    <div class="tk-grid">
+      <form class="tk-form" id="form" onsubmit="return false" aria-label="差し込む内容">${formHTML(d)}</form>
+      <section class="tk-preview" aria-label="台本プレビュー"><div class="tk-preview-scroll" id="preview">${docHTML(d)}</div></section>
+    </div>`;
+}
+
+function renderEmpty(){
+  $main.innerHTML = `
+    <div class="empty" style="margin-top:32px">
+      <h2>ぼーっとする大会の台本をつくる</h2>
+      <p>毎回入れている定型の台詞はそのままに、日時・会場・テーマ・スポンサーなど変わる部分だけを入力して台本を作ります。</p>
+      <div class="template-grid">
+        <button class="template-card" data-new="own"><strong>自社主催</strong><span>第4回TOKYO大会の内容が入った状態で始まります</span></button>
+        <button class="template-card" data-new="license"><strong>ライセンスアウト</strong><span>主催者名・主催者挨拶の枠つき。○○の部分を埋めていきます</span></button>
+      </div>
+    </div>`;
+}
+
+function renderShared(){
+  $main.innerHTML = `
+    <div class="tk-shared-banner">
+      <div><strong>共有された台本です（閲覧用）</strong><span class="hint">このページで内容を変えても、共有した人の台本は変わりません。</span></div>
+      <div class="btn-group">
+        <button class="btn btn-primary btn-sm" data-act="pdf">PDFダウンロード</button>
+        <button class="btn btn-secondary btn-sm" data-act="import">コピーして編集する</button>
+      </div>
+    </div>
+    <div class="tk-preview tk-preview-full tk-readonly"><div class="tk-preview-scroll" id="preview">${docHTML(shared)}</div></div>`;
+}
+
+function formHTML(d){
+  const v = d.vars;
+  return SECTIONS.filter(s => !s.show || s.show(v)).map(s => {
+    const fields = s.fields.filter(f => (!f.mode || f.mode === d.mode) && (!f.show || f.show(v)));
+    return `
+    <details class="tk-sec" data-sec="${s.id}" ${openSections.has(s.id) ? 'open' : ''}>
+      <summary>${esc(s.title)}</summary>
+      <div class="tk-fields">${fields.map(f => fieldHTML(f, v)).join('')}</div>
+    </details>`;
+  }).join('');
+}
+
+function fieldHTML(f, v){
+  const id = 'f-' + f.k, val = v[f.k];
+  const hint = f.hint ? `<span class="hint">${esc(f.hint)}</span>` : '';
+  const cls = 'field' + (f.half ? ' half' : '');
+  switch (f.type){
+    case 'toggle':
+      return `<label class="tk-check"><input type="checkbox" id="${id}" data-k="${f.k}" ${val?'checked':''}><span>${esc(f.label)}</span></label>`;
+    case 'textarea':
+      return `<div class="${cls}"><label for="${id}">${esc(f.label)}</label>${hint}<textarea class="textarea" id="${id}" data-k="${f.k}" rows="${f.rows||3}">${esc(val)}</textarea></div>`;
+    case 'list':
+      return `<div class="field"><span class="label">${esc(f.label)}</span>
+        <ol class="tk-list" id="${id}">${(val||[]).map((s,i) => `
+          <li><div class="tk-list-head"><span>${i+1}社目</span>
+            <button type="button" class="btn-icon" data-act="sp-up" data-i="${i}" aria-label="上へ" ${i===0?'disabled':''}>↑</button>
+            <button type="button" class="btn-icon" data-act="sp-down" data-i="${i}" aria-label="下へ" ${i===val.length-1?'disabled':''}>↓</button>
+            <button type="button" class="btn-icon" data-act="sp-del" data-i="${i}" aria-label="削除" style="color:var(--red-900)">✕</button></div>
+            <input class="input input-sm" data-list="sponsors" data-i="${i}" data-f="name" value="${esc(s.name)}" placeholder="会社名（「様」は自動で付きます）" aria-label="${i+1}社目の会社名">
+            <textarea class="textarea" data-list="sponsors" data-i="${i}" data-f="text" rows="3" placeholder="紹介文" aria-label="${i+1}社目の紹介文">${esc(s.text)}</textarea>
+          </li>`).join('')}</ol>
+        <button type="button" class="btn btn-tertiary btn-sm" data-act="sp-add">＋ 協賛社を追加</button></div>`;
+    default: {
+      const type = f.type === 'number' ? 'number' : f.type === 'time' ? 'time' : f.type === 'date' ? 'date' : 'text';
+      return `<div class="${cls}"><label for="${id}">${esc(f.label)}</label>${hint}<input class="input" type="${type}" id="${id}" data-k="${f.k}" value="${esc(val)}" ${type==='number'?'min="0" step="1"':''}></div>`;
+    }
+  }
+}
+
+/* PDF用：台詞を空行で区切って複数の行に分ける（差し込み箇所の途中では区切らない） */
+function paragraphs(html){
+  const out = []; let depth = 0, start = 0;
+  for (let i = 0; i < html.length; i++){
+    if (html.startsWith('<mark', i)) depth++;
+    else if (html.startsWith('</mark>', i)) depth--;
+    else if (depth === 0 && html.startsWith('\n\n', i)){ out.push(html.slice(start, i)); start = i + 2; }
+  }
+  out.push(html.slice(start));
+  return out.filter(p => p.trim());
+}
+
+function docHTML(d, {split = false} = {}){
+  const c = ctx(d);
+  const F = t => fill(t, c, true);
+  const B = blocks(c), R = rough(c);
+  const credit = d.mode === 'license' ? `<p class="tk-credit">主催：${F('{{hostName}}')}　監修：WOOPSYANG COMPANY　協力：株式会社VIS</p>` : '';
+  return `
+  <article class="tk-doc" id="doc">
+    <header class="tk-doc-head">
+      <h2>${F('{{name}}')}</h2>
+      <p>${F('{{dateLabel}}')}　＠${F('{{facility}}')}　${F('{{venue}}')}</p>
+      ${credit}
+    </header>
+    <h3 class="tk-doc-h">【当日ラフスケジュール】</h3>
+    <table class="tk-table tk-rough">
+      <thead><tr><th style="width:110px">TIME</th><th style="width:22%">SCENE</th><th>詳細</th><th style="width:22%">備考</th></tr></thead>
+      <tbody>${R.map(r => `<tr><td class="t">${esc(r.time)}</td><td>${F(r.scene)}</td><td>${F(r.detail)}</td><td>${F(r.note)}</td></tr>`).join('')}</tbody>
+    </table>
+    <h3 class="tk-doc-h">【進行台本】</h3>
+    <table class="tk-table tk-script">
+      <thead><tr><th style="width:56px">TIME</th><th style="width:40px">LAP</th><th style="width:15%">STAGE</th><th style="width:13%">SCENE</th><th>SCRIPT</th><th style="width:15%">MUSIC</th><th style="width:12%">STAFF</th></tr></thead>
+      <tbody>${B.map(b => {
+        const paras = split ? paragraphs(F(b.script)) : [F(b.script)];
+        return paras.map((p, i) => i === 0 ? `<tr${paras.length > 1 ? ' class="c-head"' : ''}>
+          <td class="t">${esc(b.at)}</td><td class="t">${esc(b.lap)}</td>
+          <td>${F(b.stage)}</td><td class="scene">${F(b.scene)}</td>
+          <td class="script">${p}</td><td>${F(b.music)}</td><td>${F(b.staff)}</td></tr>`
+          : `<tr class="c-cont${i < paras.length - 1 ? ' c-head' : ''}"><td></td><td></td><td></td><td></td><td class="script">${p}</td><td></td><td></td></tr>`).join('');
+      }).join('')}</tbody>
+    </table>
+  </article>`;
+}
+
+let previewTimer;
+function refreshPreview(){
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    const el = document.getElementById('preview'); const d = current();
+    if (el && d){ const y = el.scrollTop; el.innerHTML = docHTML(d); el.scrollTop = y; }
+  }, 120);
+}
+
+/* ---------- 入力 ---------- */
+document.addEventListener('input', e => {
+  const d = current(); if (!d || shared) return;
+  const t = e.target;
+  if (t.dataset.list){
+    d.vars[t.dataset.list][+t.dataset.i][t.dataset.f] = t.value;
+  } else if (t.dataset.k){
+    const f = FIELDS[t.dataset.k];
+    d.vars[t.dataset.k] = f.type === 'toggle' ? t.checked : f.type === 'number' ? (t.value === '' ? '' : Number(t.value)) : t.value;
+    if (f.type === 'toggle'){ d.updatedAt = Date.now(); save(); return rerenderForm(t.id); }
+  } else return;
+  d.updatedAt = Date.now(); save(); refreshPreview();
+  if (t.dataset.k === 'name') refreshDraftSel();
+});
+document.addEventListener('change', e => {
+  const d = current(); if (!d || shared) return;
+  if (e.target.name === 'mode'){ d.mode = e.target.value; d.updatedAt = Date.now(); save(true); rerenderForm(); toast(`開催の形を「${MODES[d.mode]}」にしました`); }
+  if (e.target.id === 'draftSel'){ state.currentId = e.target.value; save(true); render(); }
+});
+document.addEventListener('toggle', e => {
+  const s = e.target.dataset?.sec; if (!s) return;
+  e.target.open ? openSections.add(s) : openSections.delete(s);
+}, true);
+
+function rerenderForm(focusId){
+  const form = document.getElementById('form'), d = current();
+  if (!form || !d) return;
+  const y = form.scrollTop;
+  form.innerHTML = formHTML(d); form.scrollTop = y;
+  if (focusId) document.getElementById(focusId)?.focus();
+  refreshPreview();
+}
+function refreshDraftSel(){
+  const sel = document.getElementById('draftSel'); const d = current();
+  const o = sel && [...sel.options].find(o => o.value === d.id);
+  if (o) o.textContent = `${d.vars.name || '無題の大会'}（${MODES[d.mode]}）`;
+}
+
+/* プレビューの差し込み箇所をクリック → 入力欄へ */
+document.addEventListener('click', e => {
+  const mk = e.target.closest('mark.var'); if (!mk || shared) return;
+  const k = mk.dataset.k, f = FIELDS[k]; if (!f) return;
+  const d = current();
+  if (f.show && !f.show(d.vars)) return toast('この項目は「実施する内容」でオフになっています');
+  openSections.add(f.section);
+  const det = document.querySelector(`.tk-sec[data-sec="${f.section}"]`);
+  if (det && !det.open) det.open = true;
+  const el = document.getElementById('f-' + k);
+  if (el){ el.scrollIntoView({block:'center', behavior:'smooth'}); el.focus({preventScroll:true}); el.closest('.field,.tk-check')?.classList.add('flash'); setTimeout(() => el.closest('.field,.tk-check')?.classList.remove('flash'), 1200); }
+});
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.new){ document.getElementById('newDlg').close(); createDraft(b.dataset.new); return; }
+  if (b.id === 'newCancel'){ document.getElementById('newDlg').close(); return; }
+  if (b.id === 'toastUndo'){ undoFn && undoFn(); hideToast(); return; }
+  if (b.id === 'shareClose'){ document.getElementById('shareDlg').close(); return; }
+  if (b.id === 'shareCopy'){ await Share.copy(document.getElementById('shareUrl').value); toast('コピーしました'); return; }
+  const act = b.dataset.act; if (!act) return;
+  const d = current();
+
+  switch (act){
+    case 'new': document.getElementById('newDlg').showModal(); break;
+    case 'share': {
+      const url = await Share.makeLink('d', {m:d.mode, v:diff(d.mode, d.vars)});
+      const ok = await Share.copy(url);
+      document.getElementById('shareUrl').value = url;
+      document.getElementById('shareDlg').showModal();
+      document.getElementById('shareUrl').select();
+      if (!ok) toast('自動でコピーできませんでした。表示されたリンクをコピーしてください');
+      break;
+    }
+    case 'pdf': {
+      b.disabled = true; const label = b.textContent; b.textContent = 'PDFを作成中…';
+      try {
+        const tmp = document.createElement('div'); tmp.innerHTML = docHTML(d, {split:true});
+        await Share.pdf(tmp.firstElementChild, `${fileName(d)}.pdf`, {landscape:true});
+        toast('PDFをダウンロードしました');
+      }
+      catch(err){ toast('PDFを作れませんでした。通信状況を確認するか、ブラウザの印刷からPDF保存してください'); }
+      finally { b.disabled = false; b.textContent = label; }
+      break;
+    }
+    case 'import': {
+      const c = {id:uid(), mode:shared.mode, vars:clone(shared.vars), updatedAt:Date.now()};
+      state.drafts.unshift(c); state.currentId = c.id; shared = null;
+      history.replaceState(null, '', location.pathname);
+      save(true); render(); toast('自分の台本としてコピーしました'); break;
+    }
+    case 'to-editor': toEditor(d); break;
+    case 'dup': {
+      const c = {id:uid(), mode:d.mode, vars:clone(d.vars), updatedAt:Date.now()};
+      c.vars.name = (d.vars.name || '') + '（コピー）';
+      state.drafts.unshift(c); state.currentId = c.id; save(true); render(); toast('複製しました'); break;
+    }
+    case 'del': {
+      const ok = await confirmDlg('この大会の台本を削除しますか？', `「${d.vars.name || '無題の大会'}」を削除します。削除後しばらくは「元に戻す」で復元できます。`);
+      if (!ok) break;
+      const pos = state.drafts.indexOf(d);
+      state.drafts.splice(pos, 1); state.currentId = state.drafts[0]?.id || null; save(true); render();
+      toast('削除しました', () => { state.drafts.splice(pos, 0, d); state.currentId = d.id; save(true); render(); });
+      break;
+    }
+    case 'sp-add': d.vars.sponsors.push({name:'', text:''}); afterList(d, `[data-list="sponsors"][data-i="${d.vars.sponsors.length-1}"][data-f="name"]`); break;
+    case 'sp-del': {
+      const i = +b.dataset.i; const [rm] = d.vars.sponsors.splice(i, 1); afterList(d);
+      toast(`「${rm.name || '協賛社'}」を削除しました`, () => { d.vars.sponsors.splice(i, 0, rm); afterList(d); });
+      break;
+    }
+    case 'sp-up': case 'sp-down': {
+      const i = +b.dataset.i, j = act === 'sp-up' ? i - 1 : i + 1;
+      [d.vars.sponsors[i], d.vars.sponsors[j]] = [d.vars.sponsors[j], d.vars.sponsors[i]];
+      afterList(d, `[data-act="${act}"][data-i="${j}"]`); break;
+    }
+  }
+});
+function afterList(d, focusSel){
+  d.updatedAt = Date.now(); save(true); rerenderForm();
+  if (focusSel) document.querySelector(focusSel)?.focus();
+}
+const fileName = d => (d.vars.name || 'ぼーっとする大会').replace(/[\\/:*?"<>|]/g, '_') + '_進行台本';
+
+/* 通常の台本エディタへ送る（行ごとの細かい編集用） */
+function toEditor(d){
+  const c = ctx(d);
+  const P = t => fill(t, c, false);
+  const B = blocks(c);
+  const type = b => /協賛|スポンサー|実演/.test(b.scene) ? 'talk' : /発表|表彰|写真|登場|退場/.test(b.scene) ? 'show' : /【MC】/.test(b.stage) ? 'mc' : 'progress';
+  const script = {
+    id:uid(), title:P('{{name}}'), date:d.vars.date || '', venue:P('{{facility}} {{venue}}'),
+    startTime:(B[0]?.at || '12:00').padStart(5, '0'), staff:'', memo:'「ぼーっとする大会」ページから作成',
+    rows:B.map(b => ({id:uid(), type:type(b), title:P(b.scene).replace(/\n/g,' ／ '), dur:Number(b.lap) || 2,
+      speaker:P(b.stage), line:P(b.script), sound:P(b.music), light:'', video:'', note:P(b.staff)})),
+    updatedAt:Date.now(),
+  };
+  let store; try { store = JSON.parse(localStorage.getItem(EDITOR_KEY)); } catch(e) {}
+  if (!store || !Array.isArray(store.scripts)) store = {scripts:[], currentId:null};
+  store.scripts.unshift(script); store.currentId = script.id;
+  try { localStorage.setItem(EDITOR_KEY, JSON.stringify(store)); location.href = 'index.html'; }
+  catch(e) { toast('エディタに送れませんでした（ブラウザの保存領域をご確認ください）'); }
+}
+
+/* ---------- トースト・ダイアログ ---------- */
+let toastTimer;
+function toast(msg, undo){
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  const ub = document.getElementById('toastUndo');
+  undoFn = undo || null; ub.hidden = !undo;
+  el.hidden = false; clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, undo ? 8000 : 3500);
+}
+function hideToast(){ document.getElementById('toast').hidden = true; undoFn = null; }
+function confirmDlg(title, msg){
+  const d = document.getElementById('confirmDlg');
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  return new Promise(res => {
+    const ok = document.getElementById('confirmOk'), cancel = document.getElementById('confirmCancel');
+    const done = v => { d.close(); ok.onclick = cancel.onclick = null; res(v); };
+    ok.onclick = () => done(true); cancel.onclick = () => done(false);
+    d.oncancel = () => res(false);
+    d.showModal(); cancel.focus();
+  });
+}
+
+/* ---------- 起動 ---------- */
+window.addEventListener('hashchange', () => { if (location.hash.startsWith('#d=')) location.reload(); });
+(async () => {
+  const data = await Share.readLink('d');
+  if (data === undefined) toast('共有リンクを読み込めませんでした。リンクが途中で切れていないか確認してください');
+  if (data && data.v){
+    const mode = data.m === 'license' ? 'license' : 'own';
+    shared = {id:'shared', mode, vars:{...defaults(mode), ...data.v}, updatedAt:Date.now()};
+    document.title = (shared.vars.name || 'ぼーっとする大会') + '｜共有された台本';
+  }
+  if (!shared && !state.currentId && state.drafts[0]) state.currentId = state.drafts[0].id;
+  render();
+})();
+})();
+</script>
+</body>
+</html>

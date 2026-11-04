@@ -7,219 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-/* ===== デジタル庁デザインシステム（DADS）のデザイントークン ===== */
-:root{
-  --blue-50:#e8f1fe; --blue-100:#d9e6ff; --blue-200:#c5d7fb; --blue-600:#3460fb;
-  --blue-800:#0031d8; --blue-900:#0017c1; --blue-1000:#00118f; --blue-1100:#000071;
-  --lightblue-50:#f0f9ff; --lightblue-100:#dcf0ff; --lightblue-900:#0055ad;
-  --green-50:#e6f5ec; --green-800:#197a4b;
-  --orange-50:#ffeee2; --orange-800:#c74700;
-  --yellow-300:#ffd43d;
-  --red-50:#fdeeee; --red-900:#ce0000;
-  --gray-50:#f2f2f2; --gray-100:#e6e6e6; --gray-200:#cccccc; --gray-420:#949494;
-  --gray-536:#767676; --gray-600:#666666; --gray-700:#4d4d4d; --gray-800:#333333; --gray-900:#1a1a1a;
-  --white:#fff; --black:#000;
-  --radius-4:4px; --radius-8:8px; --radius-12:12px;
-  --elevation-1:0 2px 8px 1px rgba(0,0,0,.1),0 1px 5px 0 rgba(0,0,0,.3);
-  --elevation-3:0 4px 16px 3px rgba(0,0,0,.1),0 1px 6px 0 rgba(0,0,0,.3);
-  --font-sans:'Noto Sans JP',"Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
-  --font-mono:'Noto Sans Mono',ui-monospace,monospace;
-}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{font-family:var(--font-sans);font-size:16px;line-height:1.7;letter-spacing:.02em;color:var(--gray-900);background:var(--gray-50)}
-h1,h2,h3{margin:0;line-height:1.5;font-weight:700}
-button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
-
-/* フォーカスリング（DADS：黒アウトライン＋黄色） */
-:focus-visible{outline:4px solid var(--black);outline-offset:2px;box-shadow:0 0 0 2px var(--yellow-300)}
-
-/* ヘッダー */
-.app-header{position:sticky;top:0;z-index:20;background:var(--white);border-bottom:1px solid var(--gray-420);height:64px;display:flex;align-items:center;gap:16px;padding:0 24px}
-.app-title{font-size:18px;display:flex;align-items:center;gap:10px}
-.app-title .logo{width:32px;height:32px;border-radius:var(--radius-8);background:var(--blue-900);color:#fff;display:grid;place-items:center;font-size:16px}
-.save-status{margin-left:auto;font-size:14px;color:var(--gray-600)}
-
-/* レイアウト */
-.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 64px)}
-.sidebar{background:var(--white);border-right:1px solid var(--gray-200);padding:24px 16px;display:flex;flex-direction:column;gap:16px}
-.main{padding:32px 32px 120px;max-width:1200px;width:100%}
-@media (max-width:860px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{border-right:none;border-bottom:1px solid var(--gray-200)}
-  .main{padding:24px 16px 120px}
-  .app-header{padding:0 16px}
-}
-
-/* ボタン（DADS：塗り／アウトライン／テキスト） */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;padding:0 20px;border-radius:var(--radius-8);border:1px solid transparent;font-weight:700;font-size:16px;cursor:pointer;text-decoration:none;white-space:nowrap}
-.btn-sm{min-height:36px;padding:0 12px;font-size:14px;border-radius:var(--radius-4)}
-.btn-primary{background:var(--blue-900);color:var(--white)}
-.btn-primary:hover{background:var(--blue-1000);text-decoration:underline}
-.btn-primary:active{background:var(--blue-1100)}
-.btn-secondary{background:var(--white);color:var(--blue-900);border-color:var(--blue-900)}
-.btn-secondary:hover{background:var(--blue-50);color:var(--blue-1000);border-color:var(--blue-1000);text-decoration:underline}
-.btn-tertiary{background:transparent;color:var(--blue-900);text-decoration:underline;text-underline-offset:3px}
-.btn-tertiary:hover{background:var(--blue-50);color:var(--blue-1000);text-decoration-thickness:3px}
-.btn-danger{background:transparent;color:var(--red-900);text-decoration:underline;text-underline-offset:3px}
-.btn-danger:hover{background:var(--red-50)}
-.btn:disabled{background:var(--gray-200);color:var(--gray-600);border-color:transparent;cursor:not-allowed;text-decoration:none}
-.btn-icon{min-height:36px;width:36px;padding:0;border-radius:var(--radius-4);background:transparent;border:1px solid var(--gray-200);color:var(--gray-800);cursor:pointer;font-size:16px}
-.btn-icon:hover{background:var(--gray-50);border-color:var(--gray-536)}
-.btn-icon:disabled{opacity:.35;cursor:not-allowed}
-
-/* 入力（DADS：48px高・1pxボーダー・8px角丸） */
-.field{display:flex;flex-direction:column;gap:6px;min-width:0}
-.field label,.field .label{font-size:14px;font-weight:700;color:var(--gray-800)}
-.input,.select,.textarea{width:100%;min-height:48px;padding:10px 14px;border:1px solid var(--gray-600);border-radius:var(--radius-8);background:var(--white);font-size:16px}
-.input:hover,.select:hover,.textarea:hover{border-color:var(--black)}
-.input-sm{min-height:40px;padding:6px 10px}
-.textarea{line-height:1.8;resize:vertical;min-height:96px}
-.select{appearance:none;padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%231a1a1a' d='M12 15.4 6.6 10 8 8.6l4 4 4-4 1.4 1.4z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-.hint{font-size:14px;color:var(--gray-600);line-height:1.6}
-
-/* サイドバー：台本一覧 */
-.side-heading{font-size:14px;font-weight:700;color:var(--gray-700)}
-.script-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;overflow:auto}
-.script-item{width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:var(--radius-8);padding:10px 12px;cursor:pointer;display:block}
-.script-item:hover{background:var(--gray-50)}
-.script-item[aria-current="true"]{background:var(--blue-50);border-color:var(--blue-200)}
-.script-item[aria-current="true"] .si-title{color:var(--blue-900)}
-.si-title{font-weight:700;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.si-meta{font-size:13px;color:var(--gray-600)}
-.side-footer{margin-top:auto;display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--gray-200);padding-top:12px}
-.side-footer .btn{justify-content:flex-start}
-
-/* カード */
-.card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-12);padding:24px}
-.card + .card{margin-top:24px}
-.grid{display:grid;gap:16px}
-.grid-4{grid-template-columns:2fr 1fr 1fr 1fr}
-.grid-2{grid-template-columns:1fr 1fr}
-@media (max-width:860px){.grid-4,.grid-2{grid-template-columns:1fr 1fr}.grid-4 .span-all{grid-column:1/-1}}
-
-/* タブ */
-.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:24px}
-.tabs{display:inline-flex;border-bottom:1px solid var(--gray-420)}
-.tab{background:none;border:none;padding:10px 20px;font-weight:700;color:var(--gray-700);cursor:pointer;border-bottom:4px solid transparent;margin-bottom:-1px}
-.tab:hover{color:var(--blue-900);background:var(--blue-50)}
-.tab[aria-selected="true"]{color:var(--blue-900);border-bottom-color:var(--blue-900)}
-.toolbar .spacer{flex:1}
-.btn-group{display:flex;flex-wrap:wrap;gap:8px}
-
-/* サマリー */
-.summary{display:flex;flex-wrap:wrap;gap:24px;padding:16px 20px;background:var(--lightblue-50);border:1px solid var(--lightblue-100);border-radius:var(--radius-8);margin:24px 0}
-.summary div{display:flex;flex-direction:column}
-.summary dt{font-size:13px;color:var(--gray-700)}
-.summary dd{margin:0;font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--lightblue-900)}
-
-/* セグメント（台本の1ブロック） */
-.seg-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.seg{background:var(--white);border:1px solid var(--gray-200);border-left:6px solid var(--seg-color,var(--gray-420));border-radius:var(--radius-8);transition:box-shadow .15s}
-.seg:hover{box-shadow:var(--elevation-1)}
-.seg.dragging{opacity:.5}
-.seg.drop-before{box-shadow:0 -4px 0 0 var(--blue-900)}
-.seg.drop-after{box-shadow:0 4px 0 0 var(--blue-900)}
-.seg-head{display:grid;grid-template-columns:28px 92px 120px 1fr 96px auto;gap:12px;align-items:center;padding:12px 16px}
-.drag-handle{cursor:grab;color:var(--gray-536);font-size:18px;text-align:center;user-select:none;background:none;border:none;padding:4px}
-.seg-time{font-family:var(--font-mono);font-weight:700;font-size:18px;color:var(--gray-900)}
-.seg-time small{display:block;font-size:12px;color:var(--gray-600);font-weight:400;font-family:var(--font-sans)}
-.dur-wrap{display:flex;align-items:center;gap:4px}
-.dur-wrap .input{text-align:right;font-family:var(--font-mono)}
-.dur-wrap span{font-size:14px;color:var(--gray-700)}
-.seg-actions{display:flex;gap:4px}
-.seg-body{padding:0 16px 16px 56px;display:grid;gap:12px}
-.seg-body[hidden]{display:none}
-.cue-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.toggle-body{background:none;border:none;color:var(--blue-900);font-size:14px;font-weight:700;cursor:pointer;padding:0 16px 12px 56px;text-decoration:underline;text-underline-offset:3px}
-.main{container-type:inline-size}
-@container (max-width:900px){
-  .seg-head{grid-template-columns:24px auto 140px 104px 1fr;grid-template-areas:"h t type dur a" "h title title title title"}
-  .seg-head .drag-handle{grid-area:h}.seg-head .seg-time{grid-area:t}.seg-head .type-sel{grid-area:type}
-  .seg-head .dur-wrap{grid-area:dur}.seg-head .title-in{grid-area:title}.seg-head .seg-actions{grid-area:a;justify-content:flex-end}
-  .seg-body,.toggle-body{padding-left:52px}
-  .cue-grid{grid-template-columns:1fr 1fr}
-}
-@container (max-width:560px){
-  .seg-head{grid-template-columns:20px 1fr 1fr;grid-template-areas:"h t a" "h type dur" "h title title";padding:12px}
-  .seg-actions{flex-wrap:wrap}
-  .seg-body,.toggle-body{padding-left:12px;padding-right:12px}
-  .cue-grid{grid-template-columns:1fr}
-}
-.add-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
-
-/* タイプ別の色 */
-.t-progress{--seg-color:var(--blue-900)}
-.t-mc{--seg-color:#008bf2}
-.t-talk{--seg-color:var(--orange-800)}
-.t-show{--seg-color:var(--green-800)}
-.t-break{--seg-color:var(--gray-420)}
-.t-other{--seg-color:var(--gray-700)}
-.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:var(--radius-4);border:1px solid currentColor;white-space:nowrap}
-.tag.t-progress{color:var(--blue-900);background:var(--blue-50)}
-.tag.t-mc{color:var(--lightblue-900);background:var(--lightblue-50)}
-.tag.t-talk{color:var(--orange-800);background:var(--orange-50)}
-.tag.t-show{color:var(--green-800);background:var(--green-50)}
-.tag.t-break{color:var(--gray-700);background:var(--gray-50)}
-.tag.t-other{color:var(--gray-800);background:var(--white)}
-
-/* 空状態 */
-.empty{text-align:center;padding:48px 24px;border:2px dashed var(--gray-200);border-radius:var(--radius-12);background:var(--white)}
-.empty p{color:var(--gray-700);margin:8px 0 24px}
-.template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px;text-align:left}
-.template-card{background:var(--white);border:1px solid var(--gray-420);border-radius:var(--radius-12);padding:20px;cursor:pointer;text-align:left}
-.template-card:hover{border-color:var(--blue-900);background:var(--blue-50)}
-.template-card strong{display:block;color:var(--blue-900);font-size:17px}
-.template-card span{font-size:14px;color:var(--gray-700)}
-
-/* プレビュー（台本・印刷用） */
-.preview{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-12);padding:40px}
-.pv-head{border-bottom:2px solid var(--gray-900);padding-bottom:16px;margin-bottom:20px}
-.pv-head h2{font-size:26px}
-.pv-meta{display:flex;flex-wrap:wrap;gap:4px 24px;font-size:14px;color:var(--gray-700);margin-top:8px}
-.pv-memo{white-space:pre-wrap;font-size:14px;background:var(--gray-50);padding:12px 16px;border-radius:var(--radius-8);margin-bottom:20px}
-.pv-table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.7}
-.pv-table th{background:var(--gray-800);color:#fff;text-align:left;padding:8px 10px;font-weight:700;white-space:nowrap}
-.pv-table td{border-bottom:1px solid var(--gray-200);padding:10px;vertical-align:top}
-.pv-table tr.pv-break td{background:var(--gray-50)}
-.pv-time{font-family:var(--font-mono);font-weight:700;white-space:nowrap}
-.pv-title{font-weight:700;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.pv-speaker{font-size:13px;color:var(--gray-700)}
-.pv-line{white-space:pre-wrap;margin-top:6px;padding-left:12px;border-left:3px solid var(--gray-200)}
-.pv-cue{font-size:13px;white-space:pre-wrap}
-.pv-cue b{display:inline-block;min-width:3em;color:var(--gray-700)}
-.preview-wrap{overflow-x:auto}
-
-/* トースト */
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--gray-900);color:#fff;padding:12px 16px 12px 20px;border-radius:var(--radius-8);box-shadow:var(--elevation-3);display:flex;align-items:center;gap:16px;z-index:50;max-width:calc(100% - 32px)}
-.toast[hidden]{display:none}
-.toast button{background:none;border:none;color:var(--yellow-300);font-weight:700;text-decoration:underline;cursor:pointer;padding:4px}
-
-/* ダイアログ */
-dialog{border:none;border-radius:var(--radius-12);padding:32px;max-width:480px;width:calc(100% - 32px);box-shadow:var(--elevation-3)}
-dialog::backdrop{background:rgba(0,0,0,.5)}
-dialog h2{font-size:20px;margin-bottom:8px}
-dialog .actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px;flex-wrap:wrap}
-
-.visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-
-/* 印刷 */
-@media print{
-  @page{size:A4;margin:12mm}
-  body{background:#fff}
-  .app-header,.sidebar,.toolbar,.no-print,.toast{display:none!important}
-  .layout{display:block}
-  .main{padding:0;max-width:none}
-  .preview{border:none;padding:0}
-  .pv-table th{background:#333!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .pv-table tr{break-inside:avoid}
-}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="app-header">
   <h1 class="app-title"><span class="logo" aria-hidden="true">台</span>イベント台本メーカー</h1>
+  <nav class="app-nav" aria-label="ページ切替">
+    <a href="index.html" aria-current="page">台本エディタ</a>
+    <a href="taikai.html">ぼーっとする大会</a>
+  </nav>
   <span class="save-status" id="saveStatus" role="status" aria-live="polite"></span>
 </header>
 
@@ -231,7 +27,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px;f
     <div class="side-footer">
       <button class="btn btn-tertiary btn-sm" id="importBtn">ファイルから読み込む</button>
       <input type="file" id="importFile" accept=".json,application/json" class="visually-hidden" tabindex="-1">
-      <p class="hint">データはこのブラウザ内に自動保存されます。共有はファイル書き出しで行えます。</p>
+      <p class="hint">データはこのブラウザ内に自動保存されます。ほかの人には「共有リンクを発行」で共有できます。</p>
     </div>
   </aside>
 
@@ -239,6 +35,17 @@ dialog .actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px;f
 </div>
 
 <div class="toast" id="toast" hidden role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo" hidden>元に戻す</button></div>
+
+<dialog id="shareDlg">
+  <h2>共有リンクを発行しました</h2>
+  <p>リンクはクリップボードにコピー済みです。開いた人は閲覧とPDFダウンロードができ、「自分の台本に追加」で編集もできます。</p>
+  <div class="field"><label for="shareUrl">共有リンク</label><input class="input" id="shareUrl" readonly></div>
+  <p class="hint">リンクには発行した時点の内容が入っています。内容を直したら、もう一度発行してください。</p>
+  <div class="actions">
+    <button class="btn btn-secondary" id="shareCopy">もう一度コピー</button>
+    <button class="btn btn-primary" id="shareClose">閉じる</button>
+  </div>
+</dialog>
 
 <dialog id="confirmDlg">
   <h2 id="confirmTitle">確認</h2>
@@ -249,6 +56,7 @@ dialog .actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px;f
   </div>
 </dialog>
 
+<script src="share.js"></script>
 <script>
 (() => {
 'use strict';
@@ -304,6 +112,7 @@ const TEMPLATES = {
 /* ---------- 状態 ---------- */
 let state = load();
 let view = 'edit';
+let shared = null;   // 共有リンクで開いたときの台本
 let openBodies = new Set();
 let undoFn = null;
 
@@ -371,6 +180,7 @@ const $main = document.getElementById('main');
 
 function render(){
   renderList();
+  if (shared) return renderShared();
   const s = current();
   if (!s) return renderEmpty();
   $main.innerHTML = `
@@ -381,9 +191,11 @@ function render(){
       </div>
       <span class="spacer"></span>
       <div class="btn-group">
-        <button class="btn btn-secondary btn-sm" data-act="print">印刷・PDF</button>
+        <button class="btn btn-primary btn-sm" data-act="share">共有リンクを発行</button>
+        <button class="btn btn-secondary btn-sm" data-act="pdf">PDFダウンロード</button>
+        <button class="btn btn-secondary btn-sm" data-act="print">印刷</button>
         <button class="btn btn-secondary btn-sm" data-act="csv">Excel用CSV</button>
-        <button class="btn btn-secondary btn-sm" data-act="export">共有用ファイル</button>
+        <button class="btn btn-secondary btn-sm" data-act="export">ファイルに保存</button>
         <button class="btn btn-tertiary btn-sm" data-act="dup-script">台本を複製</button>
         <button class="btn btn-danger btn-sm" data-act="del-script">台本を削除</button>
       </div>
@@ -403,6 +215,18 @@ function renderList(){
     </button></li>`).join('');
 }
 
+function renderShared(){
+  $main.innerHTML = `
+    <div class="shared-banner no-print">
+      <div><strong>共有された台本です（閲覧用）</strong><span class="hint">「自分の台本に追加」すると、このブラウザで編集できます。</span></div>
+      <div class="btn-group">
+        <button class="btn btn-primary btn-sm" data-act="pdf">PDFダウンロード</button>
+        <button class="btn btn-secondary btn-sm" data-act="import-shared">自分の台本に追加</button>
+      </div>
+    </div>
+    ${previewHTML(shared)}`;
+}
+
 function renderEmpty(){
   $main.innerHTML = `
     <div class="empty">
@@ -411,6 +235,7 @@ function renderEmpty(){
       <div class="template-grid">
         ${Object.entries(TEMPLATES).map(([k,t]) => `
           <button class="template-card" data-tpl="${k}"><strong>${esc(t.name)}</strong><span>${esc(t.desc)}</span></button>`).join('')}
+        <a class="template-card" href="taikai.html" style="text-decoration:none"><strong>ぼーっとする大会</strong><span>定型の台詞はそのまま、変わる部分だけ入力して作る専用ページへ</span></a>
       </div>
     </div>`;
 }
@@ -486,7 +311,7 @@ function segHTML(r, i, t, n){
   </li>`;
 }
 
-function previewHTML(s){
+function previewHTML(s, {split = false} = {}){
   const tl = timeline(s);
   const total = s.rows.reduce((a,r) => a + (Number(r.dur)||0), 0);
   const meta = [
@@ -504,17 +329,24 @@ function previewHTML(s){
     <div class="preview-wrap"><table class="pv-table">
       <thead><tr><th style="width:90px">時刻</th><th style="width:60px">尺</th><th>内容・台詞</th><th style="width:30%">演出キュー</th></tr></thead>
       <tbody>
-      ${s.rows.map((r,i) => `
-        <tr class="${r.type==='break'?'pv-break':''}">
+      ${s.rows.map((r,i) => {
+        const paras = split ? String(r.line || '').split(/\n{2,}/).filter(p => p.trim()) : [r.line].filter(Boolean);
+        const brk = r.type === 'break' ? ' pv-break' : '';
+        const first = `
+        <tr class="${brk}${paras.length > 1 ? ' c-head' : ''}">
           <td class="pv-time">${fmt(tl[i].start)}</td>
           <td>${fmtDur(Number(r.dur)||0)}</td>
           <td>
             <div class="pv-title"><span class="tag t-${r.type}">${typeLabel(r.type)}</span>${esc(r.title)}</div>
             ${r.speaker ? `<div class="pv-speaker">話者：${esc(r.speaker)}</div>` : ''}
-            ${r.line ? `<div class="pv-line">${esc(r.line)}</div>` : ''}
+            ${paras[0] ? `<div class="pv-line">${esc(paras[0])}</div>` : ''}
           </td>
           <td class="pv-cue">${cue(r)}</td>
-        </tr>`).join('')}
+        </tr>`;
+        /* PDF用：台詞を段落ごとの行に分け、ページをまたいでも行の途中で切れないようにする */
+        return first + paras.slice(1).map((p, j) => `
+        <tr class="c-cont${brk}${j < paras.length - 2 ? ' c-head' : ''}"><td></td><td></td><td><div class="pv-line">${esc(p)}</div></td><td></td></tr>`).join('');
+      }).join('')}
       </tbody>
     </table></div>
   </article>`;
@@ -557,12 +389,32 @@ document.addEventListener('input', e => {
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
 
-  if (b.id === 'newBtn'){ state.currentId = null; renderList(); renderEmpty(); return; }
+  if (b.id === 'newBtn'){ leaveShared(); state.currentId = null; renderList(); renderEmpty(); return; }
+  if (b.id === 'shareClose'){ document.getElementById('shareDlg').close(); return; }
+  if (b.id === 'shareCopy'){ await Share.copy(document.getElementById('shareUrl').value); toast('コピーしました'); return; }
   if (b.id === 'importBtn'){ document.getElementById('importFile').click(); return; }
   if (b.id === 'toastUndo'){ undoFn && undoFn(); hideToast(); return; }
   if (b.dataset.tpl){ createScript(b.dataset.tpl); return; }
-  if (b.dataset.open){ state.currentId = b.dataset.open; save(true); render(); return; }
+  if (b.dataset.open){ leaveShared(); state.currentId = b.dataset.open; save(true); render(); return; }
   if (b.dataset.view){ view = b.dataset.view; render(); return; }
+
+  if (b.dataset.act === 'pdf'){
+    const target = shared || current(); if (!target) return;
+    b.disabled = true; const label = b.textContent; b.textContent = 'PDFを作成中…';
+    try {
+      const tmp = document.createElement('div'); tmp.innerHTML = previewHTML(target, {split:true});
+      await Share.pdf(tmp.firstElementChild, `${safeName(target)}.pdf`);
+      toast('PDFをダウンロードしました');
+    } catch(err){ toast('PDFを作れませんでした。通信状況を確認するか、「印刷」からPDF保存してください'); }
+    finally { b.disabled = false; b.textContent = label; }
+    return;
+  }
+  if (b.dataset.act === 'import-shared'){
+    const c = JSON.parse(JSON.stringify(shared));
+    c.id = uid(); c.rows.forEach(r => r.id = uid()); c.updatedAt = Date.now();
+    state.scripts.unshift(c); state.currentId = c.id; leaveShared(); view = 'edit';
+    save(true); render(); toast('自分の台本に追加しました'); return;
+  }
 
   const s = current(); if (!s) return;
   const act = b.dataset.act; if (!act) return;
@@ -608,6 +460,16 @@ document.addEventListener('click', async e => {
     case 'print': {
       if (view !== 'preview'){ view = 'preview'; render(); }
       setTimeout(() => window.print(), 50); break;
+    }
+    case 'share': {
+      const {id, updatedAt, ...rest} = s;
+      const url = await Share.makeLink('s', {...rest, rows:s.rows.map(({id, ...r}) => r)});
+      const ok = await Share.copy(url);
+      document.getElementById('shareUrl').value = url;
+      document.getElementById('shareDlg').showModal();
+      document.getElementById('shareUrl').select();
+      if (!ok) toast('自動でコピーできませんでした。表示されたリンクをコピーしてください');
+      break;
     }
     case 'csv': exportCSV(s); break;
     case 'export': exportJSON(s); break;
@@ -732,8 +594,22 @@ document.addEventListener('keydown', e => {
   }
 });
 
-if (!state.currentId && state.scripts[0]) state.currentId = state.scripts[0].id;
-render();
+function leaveShared(){
+  if (!shared) return;
+  shared = null; history.replaceState(null, '', location.pathname);
+}
+window.addEventListener('hashchange', () => { if (location.hash.startsWith('#s=')) location.reload(); });
+
+(async () => {
+  const data = await Share.readLink('s');
+  if (data === undefined) toast('共有リンクを読み込めませんでした。リンクが途中で切れていないか確認してください');
+  if (data && Array.isArray(data.rows)){
+    shared = {...data, id:'shared', rows:data.rows.map(r => ({...r, id:uid()}))};
+    document.title = (shared.title || '台本') + '｜共有された台本';
+  }
+  if (!state.currentId && state.scripts[0]) state.currentId = state.scripts[0].id;
+  render();
+})();
 })();
 </script>
 </body>
