@@ -308,3 +308,16 @@ mark.var.empty{background:var(--red-50);color:var(--red-900);box-shadow:inset 0 
 .tk-table tr.tk-sec-row mark.var{color:inherit}
 .tk-list .tk-check{padding:2px 0}
 @media (max-width:860px){.app-nav{overflow-x:auto;scrollbar-width:none;min-width:0}.app-nav a{white-space:nowrap;padding:8px}.app-header{gap:8px}}
+
+/* 作成・一覧画面 */
+.tk-home{display:flex;flex-direction:column;gap:24px;max-width:1040px;margin:8px auto 0}
+.tk-home-sec{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-12);padding:28px}
+.tk-home-sec h2{font-size:22px;margin-bottom:4px}
+.tk-home-sec .template-grid{margin-top:16px}
+.tk-home-h{font-size:15px;color:var(--gray-700);margin:20px 0 8px;padding-left:10px;border-left:4px solid var(--blue-900)}
+.tk-drafts{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tk-draft-item{width:100%;text-align:left;background:var(--white);border:1px solid var(--gray-420);border-radius:var(--radius-8);padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.tk-draft-item:hover{border-color:var(--blue-900);background:var(--blue-50)}
+.tk-draft-name{font-weight:700;color:var(--blue-900);text-decoration:underline;text-underline-offset:3px}
+.tk-draft-meta{font-size:13px;color:var(--gray-600)}
+@media (max-width:860px){.tk-home-sec{padding:20px 16px}}

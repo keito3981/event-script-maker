@@ -34,6 +34,19 @@ let state = load();
 let shared = null;               // 共有リンクで開いたときの内容
 let openSections = new Set(E.openSections || SECTIONS.slice(0, 3).map(s => s.id));
 let undoFn = null;
+let view = 'home';               // home：作成・一覧画面　edit：台本の編集画面
+
+/* 画面の切り替え（ブラウザの「戻る」でも作成・一覧画面に戻れるようにする） */
+function openDraft(id){
+  state.currentId = id; save(true);
+  if (view !== 'edit') history.pushState({view:'edit'}, '');
+  view = 'edit'; render(); scrollTo(0, 0);
+}
+function goHome(){
+  if (history.state?.view === 'edit') return history.back();
+  view = 'home'; render(); scrollTo(0, 0);
+}
+window.addEventListener('popstate', () => { view = history.state?.view === 'edit' && current() ? 'edit' : 'home'; render(); });
 
 function load(){
   try { const d = JSON.parse(localStorage.getItem(STORE_KEY)); if (d && Array.isArray(d.drafts)) return d; } catch(e) {}
@@ -57,8 +70,8 @@ const diff = (mode, vars) => { const base = defaults(mode); return Object.fromEn
 
 function createDraft(mode){
   const d = {id:uid(), mode, vars:defaults(mode), updatedAt:Date.now()};
-  state.drafts.unshift(d); state.currentId = d.id;
-  save(true); render();
+  state.drafts.unshift(d);
+  openDraft(d.id);
   toast(E.modes[mode].created || `${E.unit}の台本を作りました`);
 }
 
@@ -115,10 +128,11 @@ const $main = document.getElementById('main');
 function render(){
   const d = current();
   if (shared) return renderShared();
-  if (!d) return renderEmpty();
+  if (!d || view === 'home') return renderHome();
   $main.innerHTML = `
     <div class="tk-bar">
       <div class="tk-bar-left">
+        <button class="btn btn-secondary btn-sm tk-back" data-act="home">← 作成・一覧画面へ</button>
         <label class="visually-hidden" for="draftSel">台本を切り替え</label>
         <select class="select tk-draft" id="draftSel">
           ${state.drafts.map(x => `<option value="${x.id}" ${x.id===d.id?'selected':''}>${esc(draftName(x))}</option>`).join('')}
@@ -149,12 +163,29 @@ function templateCards(){
   return MODE_KEYS.map(k => `<button class="template-card" data-new="${k}"><strong>${esc(E.modes[k].label)}</strong><span>${esc(E.modes[k].desc)}</span></button>`).join('');
 }
 
-function renderEmpty(){
+/* 作成・一覧画面：開催の形を選んで新しく作るか、保存済みの台本を開く */
+function renderHome(){
+  const fmt = t => new Date(t).toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  const dateOf = x => { const d = x.vars.date && new Date(x.vars.date + 'T00:00:00'); return d && !isNaN(d) ? `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` : '日付未定'; };
+  const groups = MODE_KEYS.map(k => [k, state.drafts.filter(x => x.mode === k)]).filter(([, list]) => list.length);
   $main.innerHTML = `
-    <div class="empty" style="margin-top:32px">
-      <h2>${esc(E.title)}の台本をつくる</h2>
-      <p>${esc(E.intro)}</p>
-      <div class="template-grid">${templateCards()}</div>
+    <div class="tk-home">
+      <section class="tk-home-sec" aria-labelledby="home-new">
+        <h2 id="home-new">${esc(E.title)}の台本を新しく作る</h2>
+        <p class="hint">${esc(E.intro)}</p>
+        <div class="template-grid">${templateCards()}</div>
+      </section>
+      <section class="tk-home-sec" aria-labelledby="home-list">
+        <h2 id="home-list">保存済みの台本</h2>
+        ${groups.length ? groups.map(([k, list]) => `
+          ${MODE_KEYS.length > 1 ? `<h3 class="tk-home-h">${esc(modeLabel(k))}</h3>` : ''}
+          <ul class="tk-drafts">${list.map(x => `
+            <li><button class="tk-draft-item" data-open="${x.id}">
+              <span class="tk-draft-name">${esc(x.vars.name || '無題の' + E.unit)}</span>
+              <span class="tk-draft-meta">開催日 ${esc(dateOf(x))}　・　最終更新 ${esc(fmt(x.updatedAt))}</span>
+            </button></li>`).join('')}</ul>`).join('') : `<p class="hint">まだ保存済みの台本はありません。上のどちらかを選んで作り始めてください。</p>`}
+        <p class="hint">台本はこのブラウザに自動保存されています。</p>
+      </section>
     </div>`;
 }
 
@@ -329,6 +360,7 @@ document.addEventListener('click', e => {
 document.addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.new){ document.getElementById('newDlg').close(); createDraft(b.dataset.new); return; }
+  if (b.dataset.open){ openDraft(b.dataset.open); return; }
   if (b.id === 'newCancel'){ document.getElementById('newDlg').close(); return; }
   if (b.id === 'toastUndo'){ undoFn && undoFn(); hideToast(); return; }
   if (b.id === 'shareClose'){ document.getElementById('shareDlg').close(); return; }
@@ -337,6 +369,7 @@ document.addEventListener('click', async e => {
   const d = current();
 
   switch (act){
+    case 'home': goHome(); break;
     case 'new':
       if (MODE_KEYS.length === 1) createDraft(MODE_KEYS[0]);
       else { document.getElementById('newChoices').innerHTML = templateCards(); document.getElementById('newDlg').showModal(); }
@@ -365,7 +398,7 @@ document.addEventListener('click', async e => {
       const c = {id:uid(), mode:shared.mode, vars:clone(shared.vars), updatedAt:Date.now()};
       state.drafts.unshift(c); state.currentId = c.id; shared = null;
       history.replaceState(null, '', location.pathname);
-      save(true); render(); toast('自分の台本としてコピーしました'); break;
+      openDraft(c.id); toast('自分の台本としてコピーしました'); break;
     }
     case 'to-editor': toEditor(d); break;
     case 'dup': {
@@ -377,8 +410,8 @@ document.addEventListener('click', async e => {
       const ok = await confirmDlg(`この${E.unit}の台本を削除しますか？`, `「${d.vars.name || '無題の' + E.unit}」を削除します。削除後しばらくは「元に戻す」で復元できます。`);
       if (!ok) break;
       const pos = state.drafts.indexOf(d);
-      state.drafts.splice(pos, 1); state.currentId = state.drafts[0]?.id || null; save(true); render();
-      toast('削除しました', () => { state.drafts.splice(pos, 0, d); state.currentId = d.id; save(true); render(); });
+      state.drafts.splice(pos, 1); state.currentId = state.drafts[0]?.id || null; save(true); goHome();
+      toast('削除しました', () => { state.drafts.splice(pos, 0, d); save(true); openDraft(d.id); });
       break;
     }
     case 'li-add': {
