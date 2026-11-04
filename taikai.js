@@ -14,8 +14,8 @@ const SECTIONS = [
     {k:'facility', label:'施設名', type:'text', hint:'アナウンスの呼びかけに使います'},
     {k:'venue', label:'会場名（ステージのある場所）', type:'text'},
     {k:'greeting', label:'開会式の第一声', type:'text', hint:'例：アークヒルズで過ごす休日'},
-    {k:'hostName', label:'主催者名', type:'text', mode:'license', half:true},
-    {k:'hostRep', label:'主催者挨拶をする方', type:'text', mode:'license', half:true},
+    {k:'specialName', label:'「○○特別版」の呼び方', type:'text', hint:'例：イオンモールの秋休み特別版（空欄にすると読み上げません）'},
+    {k:'restroom', label:'お手洗いの場所', type:'text', hint:'例：ステージに向かって右手奥、エレベーター近く（空欄にすると読み上げません）'},
   ]},
   {id:'options', title:'実施する内容', fields:[
     {k:'experienceOn', label:'大会前の「ぼーっと体験会」', type:'toggle'},
@@ -24,7 +24,7 @@ const SECTIONS = [
     {k:'demoOn', label:'メインスポンサーの商品説明・実演', type:'toggle'},
     {k:'guestOn', label:'ゲスト実況者の出演', type:'toggle'},
     {k:'woopsOn', label:'ウップスヤンさんの来場', type:'toggle'},
-    {k:'hostGreetOn', label:'開会式での主催者挨拶', type:'toggle', mode:'license'},
+    {k:'prizeIntroOn', label:'競技終了後の景品紹介', type:'toggle'},
   ]},
   {id:'time', title:'タイムテーブル', fields:[
     {k:'loadIn', label:'搬入開始', type:'time', half:true},
@@ -35,6 +35,7 @@ const SECTIONS = [
     {k:'taikenEnd', label:'体験会 終了', type:'time', half:true, show:v=>v.experienceOn},
     {k:'announceStart', label:'場内アナウンス開始', type:'time', half:true},
     {k:'receptionStart', label:'選手受付 開始', type:'time', half:true},
+    {k:'sameDayStart', label:'当日エントリー受付 開始', type:'time', half:true, show:v=>v.lotteryOn, hint:'選手受付と同じ時刻なら同時に開始'},
     {k:'receptionEnd', label:'選手受付 締切', type:'time', half:true},
     {k:'lottery', label:'当日参加の抽選発表', type:'time', half:true, show:v=>v.lotteryOn},
     {k:'sameDayDeadline', label:'当日参加者の受付締切', type:'time', half:true, show:v=>v.lotteryOn},
@@ -45,11 +46,11 @@ const SECTIONS = [
     {k:'award', label:'表彰式', type:'time', half:true},
   ]},
   {id:'theme', title:'テーマ・大会の紹介', fields:[
-    {k:'theme', label:'今年のテーマ', type:'text'},
+    {k:'theme', label:'今年のテーマ', type:'text', hint:'空欄にすると読み上げません'},
     {k:'townImage', label:'街のイメージ', type:'text', hint:'例：華やかで高価なイメージのある、ここ六本木'},
-    {k:'themeShort', label:'テーマ紹介（場内アナウンス用・短め）', type:'textarea', rows:6},
-    {k:'themeLong', label:'テーマ紹介（開会式用）', type:'textarea', rows:8},
-    {k:'themeMid', label:'テーマ紹介（競技中の実況用）', type:'textarea', rows:6},
+    {k:'themeShort', label:'テーマ紹介（場内アナウンス用・短め）', type:'textarea', rows:6, hint:'空欄にすると読み上げません'},
+    {k:'themeLong', label:'開会式で話す大会の意義・今回の開催に込めた想い', type:'textarea', rows:8},
+    {k:'themeMid', label:'テーマ紹介（競技中の実況用）', type:'textarea', rows:6, hint:'空欄にすると読み上げません'},
     {k:'pastThemes', label:'これまでのテーマ', type:'text', hint:'空欄にすると読み上げません'},
     {k:'achievements', label:'今年の開催実績', type:'textarea', rows:4},
     {k:'scaleNote', label:'今回の規模について', type:'text'},
@@ -79,7 +80,10 @@ const SECTIONS = [
     {k:'booth', label:'投票板・ブースの場所', type:'text', hint:'例：競技場後方、MEGURIブースの隣'},
     {k:'sponsors', label:'協賛社紹介（競技終了後に読み上げ）', type:'list'},
   ]},
-  {id:'rules', title:'審査・おたすけカード', fields:[
+  {id:'rules', title:'受付・審査・おたすけカード', fields:[
+    {k:'handouts', label:'受付での配布物', type:'text'},
+    {k:'handoutRules', label:'ルールが載っている配布物', type:'text', hint:'例：パンフレット／チラシの裏'},
+    {k:'bannerText', label:'ロールバナーの文言（1行に1枚）', type:'textarea', rows:3, hint:'空欄にすると「〜〜〜」のままになります'},
     {k:'topN', label:'芸術点で選ぶ上位の組数', type:'number', half:true},
     {k:'stickers', label:'観客1人あたりの投票シール', type:'number', half:true},
     {k:'cardRed', label:'赤いカード', type:'textarea', rows:2},
@@ -88,6 +92,7 @@ const SECTIONS = [
     {k:'cardBlack', label:'黒いカード', type:'textarea', rows:2},
   ]},
   {id:'prize', title:'賞品', fields:[
+    {k:'prizeIntro', label:'景品紹介で話す内容', type:'textarea', rows:6, show:v=>v.prizeIntroOn},
     {k:'p3From', label:'3位 賞品の提供元', type:'text'},
     {k:'p3Item', label:'3位 賞品', type:'text'},
     {k:'p2From', label:'2位 賞品の提供元', type:'text'},
@@ -109,11 +114,11 @@ const BASE = {
   name:'第4回 TOKYO ぼーっとする大会 Presented by MEGURI',
   date:'2026-11-03', dateNote:'祝',
   facility:'アークヒルズ', venue:'アーク・カラヤン広場', greeting:'アークヒルズで過ごす休日',
-  hostName:'', hostRep:'',
-  experienceOn:true, lotteryOn:true, charOn:true, demoOn:true, guestOn:false, woopsOn:true, hostGreetOn:false,
+  specialName:'', restroom:'',
+  experienceOn:true, lotteryOn:true, charOn:true, demoOn:true, guestOn:false, woopsOn:true, prizeIntroOn:false,
   loadIn:'08:30', staffIn:'09:00', castIn:'09:30', rehearsal:'10:30',
   taikenStart:'11:30', taikenEnd:'13:30', announceStart:'12:30',
-  receptionStart:'13:30', receptionEnd:'13:55', lottery:'14:05', sameDayDeadline:'14:15',
+  receptionStart:'13:30', sameDayStart:'13:30', receptionEnd:'13:55', lottery:'14:05', sameDayDeadline:'14:15',
   opening:'14:35', compStart:'15:00', duration:90, interval:15, award:'16:55',
   theme:'贅沢の再定義', townImage:'華やかで高価なイメージのある、ここ六本木',
   themeShort:
@@ -169,11 +174,13 @@ const BASE = {
     {name:'City Camp（シティキャンプ）', text:'コンセプトは、「なんもしないをしませんか」。\nクラフトノンアル飲料「OFF COLA」は、一日の終わりにご褒美を与えてくれる、OFFタイムの象徴となるドリンクです。\nAmazonや成城石井、一部限定のセブンイレブンや全国の銭湯で販売しております。'},
     {name:'合同会社マクフライ・ジャパン・トレイディング', text:'スリープヘキサゴンの温泉ヒーリングブランケットは、ぼーっとする時間を愛する皆さまにぴったりの商品です。\nこの商品のキャッチコピーは「がんばる女性に、“何もしないご褒美“を」。もちろん男性もお使い頂けます。'},
   ],
+  handouts:'参加証明書・ゼッケン・おたすけカード・パンフレット・チラシ一式', handoutRules:'パンフレット', bannerText:'',
   topN:10, stickers:3,
   cardRed:'凝り固まった筋肉を緩めるマッサージサービスです。\n首周りが疲れてきたと感じた方は、赤いカードを挙げていただければMEGURI製品のネックピローをお渡しします。',
   cardBlue:'喉の渇きを潤すドリンクサービスです。青いカードを挙げた方には、お水を提供します。',
   cardYellow:'寒さを緩和するホットサービスです。黄色いカードを挙げた方には、カイロをお渡しします。',
   cardBlack:'その他の不便を解消するサービスです。お手洗いに行きたいときや体調不良のときなどに、合図としてご使用ください。',
+  prizeIntro:'',
   p3From:'', p3Item:'', p2From:'', p2Item:'',
   spFrom:'サンエックス株式会社', spItem:'', winFrom:'Nolook商事株式会社', winItem:'',
   nextEvent:'',
@@ -189,27 +196,38 @@ const BASE = {
   season:'季節の変わり目で体調管理も大変な時期になりました。',
 };
 
-/* ライセンスアウト（他社主催）で新しく作るときに上書きする初期値 */
+/* ライセンスアウト（他社主催）で新しく作るときに上書きする初期値
+   テレビ朝日・六本木ヒルズ SUMMER FES（2026/7/26）とイオンレイクタウン（2026/9/22）の台本がもと */
 const LICENSE = {
-  name:'ぼーっとする大会 in ○○', facility:'○○', venue:'○○広場', greeting:'○○にお越しの皆さま',
-  hostName:'○○株式会社', hostRep:'○○株式会社 代表取締役 ○○様',
-  experienceOn:false, charOn:false, demoOn:false, woopsOn:false, hostGreetOn:true,
-  loadIn:'10:00', staffIn:'11:00', castIn:'12:00', rehearsal:'13:00',
-  announceStart:'13:15', receptionStart:'13:45', receptionEnd:'14:15', lottery:'14:25', sameDayDeadline:'14:35',
-  opening:'15:00', compStart:'15:15', duration:60, award:'16:35',
-  theme:'', townImage:'',
-  themeShort:'',
-  themeLong:'',
-  themeMid:'',
-  pastThemes:'', scaleNote:'',
+  name:'ぼーっとする大会 in ○○', specialName:'○○特別版', date:'', dateNote:'',
+  facility:'○○', venue:'○○広場', greeting:'○○での休日', restroom:'',
+  experienceOn:false, lotteryOn:true, charOn:false, demoOn:false, guestOn:false, woopsOn:false, prizeIntroOn:false,
+  loadIn:'08:00', staffIn:'09:00', castIn:'09:00', rehearsal:'09:15',
+  taikenStart:'10:00', taikenEnd:'12:30', announceStart:'13:00',
+  receptionStart:'13:20', sameDayStart:'13:35', receptionEnd:'14:05', lottery:'14:15', sameDayDeadline:'14:25',
+  opening:'14:45', compStart:'15:00', duration:60, award:'16:15',
+  theme:'', townImage:'', themeShort:'', themeMid:'', pastThemes:'', scaleNote:'',
+  themeLong:
+`今回は「○○特別版」ということで、普段の生活から離れて休日をお楽しみの方もたくさんいらっしゃると思います。
+普段の生活は、自分のタスクに追われて、隙間時間もあまり取れず、寝て起きての繰り返し。
+身体や心が疲れていることはなんとなくわかっていても、休める暇もなく、さらには、大量の情報をイヤでも浴び続けなければいけない。
+そんな日々を皆さま過ごされていると思います。
+
+ここらで一旦、何もせずぼーっとして、身体も心も本当の意味で休ませてあげましょう。
+これをきっかけに、何か気づきが得られるかもしれません。`,
   achievements:
-`今年は、東京・六本木で開催された「テレビ朝日・六本木ヒルズ SUMMER FES」や、東北初開催となった「アクアイグニス仙台」など、
-全国各地で大会が開催されてきました。過去には、大阪・関西万博や新幹線の中でも大会が行われ、これまで色々なところで話題を呼んでいます。`,
-  mc:'', starter:'主催者代表', presenter:'主催者代表',
-  staffLead:'', staffSetup:'', staffBanner:'',
-  mainSponsor:'', mainShort:'', brand:'', booth:'競技場後方',
-  sponsors:[], spFrom:'', winFrom:'',
-  cardRed:'凝り固まった筋肉を緩めるマッサージサービスです。赤いカードを挙げた方には、スタッフがマッサージをします。',
+`昨年の大阪・関西万博では、万博カラオケを中心にSNSで大人気だった「よしもとwaraii myraii館」にて、このぼーっとする大会が開催されました。
+また、過去には新幹線の中で行われたこともあったりと、これまで色々なところで話題を呼んできました。`,
+  mc:'', mcTitle:'イベントMC', starter:'SP', presenter:'SP',
+  guestName:'', guestIntro:'', staffLead:'藤田', staffSetup:'木下・武藤', staffBanner:'木下',
+  mainSponsor:'', mainShort:'', brand:'', booth:'会場の横、「ぼーっとする大会」ののぼりのところ',
+  sponsors:[],
+  handouts:'ゼッケン・チラシ・おたすけカード・参加証明書の4点', handoutRules:'チラシの裏',
+  bannerText:'忙しい日常で動き続けている自分を、今日は止めてみましょう。\nこの大会だけは、ただ存在するだけで拍手をもらうことができます。\n指定の向きで座ってください。ホイッスルの合図で競技開始です。',
+  cardRed:'凝り固まった筋肉を緩めるマッサージサービスです。\n同じ姿勢で身体がキツくなった方は、赤いカードを挙げていただければスタッフが1分間の肩揉みマッサージをします。',
+  cardYellow:'暑さを緩和するクールサービスです。黄色いカードを挙げた方には、スタッフが1分間うちわで風を送ります。',
+  prizeIntro:'',
+  p3From:'', p3Item:'', p2From:'', p2Item:'', spFrom:'', spItem:'', winFrom:'', winItem:'',
   nextEvent:'',
 };
 
@@ -224,11 +242,17 @@ function computed(v){
   c.compEnd = add(v.compStart, Number(v.duration) || 0);
   c.closeTime = add(v.award, 20);
   c.countdown = add(c.compEnd, -3);
-  for (const k of ['taikenStart','taikenEnd','announceStart','receptionStart','receptionEnd','lottery','sameDayDeadline','opening','compStart','compEnd','award','countdown'])
+  for (const k of ['taikenStart','taikenEnd','announceStart','receptionStart','sameDayStart','receptionEnd','lottery','sameDayDeadline','opening','compStart','compEnd','award','countdown'])
     c[k + '_jp'] = jp(c[k]);
   c.lotteryGather = jp(add(v.lottery, -2));
   c.license = v.mode === 'license';
   c.own = !c.license;
+  c.sameDayLater = v.lotteryOn && toMin(v.sameDayStart) > toMin(v.receptionStart);
+  c.shortened = (Number(v.duration) || 0) < 90;
+  c.patrol = v.woopsOn ? 'ウップスヤンさんとSPの御三方' : 'SPのお二人';
+  c.bannerLines = String(v.bannerText || '').split('\n').map(t => t.trim()).filter(Boolean);
+  c.bannerLines.forEach((t, i) => { c['bannerLine' + i] = t; });
+  c.tallyMin = Math.max(5, (toMin(v.award) ?? 0) - (toMin(c.compEnd) ?? 0));
   c.dateLabel = (() => {
     const d = v.date && new Date(v.date + 'T00:00:00');
     if (!d || isNaN(d)) return '日付未定';
@@ -247,7 +271,8 @@ const ANNOUNCE_A =
 忙しい現代に生きる全ての人々へ、心に余白を作ってもらいたい。
 そんなコンセプトを掲げた『ぼーっとする大会』は、2014年にアーティストのウップスヤンさんが始めた韓国発祥の大会で、
 名前の通り、どれだけぼーっとしていられるかを競います。
-{{#themeShort}}
+{{#specialName}}今回は「{{specialName}}」として開催します！
+{{/specialName}}{{#themeShort}}
 {{themeShort}}
 {{/themeShort}}
 今大会の競技時間は{{duration}}分間。順位の決め方には、{{interval}}分おきに計測する心拍数とご観覧の皆さまからの投票が関わってきます。
@@ -257,22 +282,25 @@ const ANNOUNCE_A =
 また、当日参加枠が少しございますので、お時間に余裕があり、
 「何もしないことの価値を感じてみたい！」という方は、ぜひチャレンジしてみてはいかがでしょうか！
 速く走ったり、重いものを持ったり出来なくても大丈夫。ただひたすらにぼーっとすることを競う韓国発祥の人気イベント！
-ご参加ご希望の方は、{{receptionEnd_jp}}までに受付近くにいるスタッフにお声がけください！{{/lotteryOn}}`;
+{{#sameDayLater}}ご参加ご希望の方は、{{sameDayStart_jp}}から当日参加者の受付を行いますので、時間になりましたら「{{venue}}」、「ぼーっとする大会」ののぼりがある受付までお越しください！{{/sameDayLater}}{{^sameDayLater}}ご参加ご希望の方は、{{receptionEnd_jp}}までに受付近くにいるスタッフにお声がけください！{{/sameDayLater}}{{/lotteryOn}}`;
 
 const RECEPTION_BODY =
-`受付では、【参加証明書・ゼッケン・おたすけカード・パンフレット・チラシ一式】をお配りしています。パンフレットには、
+`受付では、【{{handouts}}】をお配りしています。{{handoutRules}}には、
 大会のルールやおたすけカードの使い方が記載されているので、競技が始まるまでに確認しておいてください。
 
 受付が済んだら、投票ブースに移動して、ご自身のゼッケン番号の投票用紙に参加理由や意気込みをご記入ください。
 その後、ご自身のゼッケン番号のヨガマットに座り、開会式までぼーっとしてお待ちくださいね。
 なお、ヨガマットに上がる際は靴を脱いでいただきます。脱いだ靴はマットの後ろ側に置くようにお願いいたします。
-{{#lotteryOn}}
+{{#lotteryOn}}{{#sameDayLater}}
+また、このあと{{sameDayStart_jp}}より当日参加エントリーの受付が始まります。
+"我こそは、ぼーっとすることが得意だー！！"とか、"最近忙しすぎたからちょっと一息つきたいな"という方は、ぜひチャレンジしてみてはいかがでしょうか！
+{{/sameDayLater}}{{^sameDayLater}}
 また、{{receptionEnd_jp}}まで、当日参加エントリーも受付中です。
 「今日たまたま遊びに来たけど、ぼーっとしてみたい！」「何もしないことの価値を感じてみたい！」という方は、
 ぜひチャレンジしてみてはいかがでしょうか！
 ご参加ご希望の方は、{{receptionEnd_jp}}までに受付近くにいるスタッフにお声がけください！
 なお、当日参加者の選定は抽選で行う予定です。抽選結果は{{lottery_jp}}に発表いたしますので、受付にお越しください。
-{{/lotteryOn}}
+{{/sameDayLater}}{{/lotteryOn}}
 本日は、こちら「{{venue}}」にて『ぼーっとする大会』を開催いたします。`;
 
 const AWARD_STEP = (rank, label, from, item, extra = '') =>
@@ -286,7 +314,7 @@ const AWARD_STEP = (rank, label, from, item, extra = '') =>
 
 【MC：賞状読み上げ／{{presenter}}：賞状授与】
 おめでとうございます！！
-${extra}{{#${item}}}そして、△△△△さんには、{{${from}}}様より、{{${item}}}が贈呈されます！
+${extra}{{#${item}}}そして、△△△△さんには、{{#${from}}}{{${from}}}様より、{{/${from}}}{{${item}}}が贈呈されます！
 【賞品授与】
 {{/${item}}}
 では、皆さまで写真を撮りましょう。
@@ -323,6 +351,14 @@ function blocks(c){
 希望者の方との写真撮影タイムも予定しているので、是非それまでぼーっとお待ちいただけると嬉しいです。
 {{/charOn}}
 それでは、何もしない時間をお楽しみください。`, music:'★BGM①：薄めでキープ'});
+
+  push(c.license && c.lotteryOn, {at:add(c.announceStart, -45), stage:'【MC】', scene:'場内アナウンス（短め）\n※10分おきに繰り返す', script:
+`★場内アナウンス★
+{{facility}}にご来場の皆さまにご案内申し上げます！
+本日は、ここ「{{venue}}」で「ぼーっとする大会」が行われます！
+
+当日参加枠もまだ少しあるみたいなので、「ぼーっとするの得意だー！」「最近疲れているからぼーっとしてみたいな」という方は、
+ぜひ{{sameDayStart_jp}}からの当日エントリー受付をしにきてくださいねー！`});
 
   push(true, {at:c.announceStart, stage:'【MC】ステージ中央でアナウンス\n→合間の時間は袖で待機', scene:'大会の説明\n投票の呼びかけ\n当日参加の呼びかけ', script: ANNOUNCE_A + (c.charOn ? '\n\n【MC：{{charName}}登場まで軽くつなげる】' : ''), music:'★BGM①：薄めでキープ\n※拍手が起きるような場面では、それに応じて煽る'});
 
@@ -366,7 +402,22 @@ function blocks(c){
 
 ${RECEPTION_BODY}`});
 
-  push(true, {at:add(c.receptionStart, 10), stage:'【MC】中央', scene:'受付の催促', script:
+  push(c.sameDayLater, {at:c.sameDayStart, stage:'【MC】中央', scene:'当日エントリー受付開始', script:
+`本日{{opening_jp}}より、こちら「{{venue}}」にて『{{name}}』が開催されます！
+{{sameDayStart_jp}}になりましたので、これより当日エントリーの受付を開始いたします。
+
+当日参加枠が若干名ございますので、"今日たまたま遊びに来たけど、ぼーっとしてみたい！"という気持ちがあり、
+{{duration}}分間ぼーっとするお時間のある方はぜひ受付にお越しください。
+また、3人までのチームでも参加ができますので、"みんなでぼーっとしてみたら楽しそう！"という方々にもオススメです。
+
+ただひたすらに何にもしないことを競う韓国発祥の人気イベント！ご参加ご希望の方は、{{receptionEnd_jp}}までに受付にお申し出ください。
+なお、当日枠の数を超えるエントリーがあった場合は、参加者を抽選で決めさせていただきます。
+ぜひ、皆さまのご参加をお待ちしております！
+
+また、競技参加者の皆さまは{{opening_jp}}からの開会式に間に合うよう、ご準備をお願いいたします。
+{{#restroom}}なお、お手洗いは、{{restroom}}にございます。{{/restroom}}`});
+
+  push(true, {at:add(c.receptionStart, c.sameDayLater ? 30 : 10), stage:'【MC】中央', scene:'受付の催促', script:
 `本日{{opening_jp}}より、こちら「{{venue}}」にて『ぼーっとする大会』が開催されます！
 
 事前の選手登録がお済みの皆さまにお知らせです。
@@ -461,11 +512,6 @@ ${RECEPTION_BODY}`});
 
 申し遅れましたが、私、司会進行を務めさせていただきます、
 {{mcTitle}}の{{mc}}と申します！どうぞよろしくお願いいたします！！
-{{#license}}{{#hostGreetOn}}
-まずは、本大会の主催であります{{hostName}}より、{{hostRep}}にご挨拶をいただきます。
-【{{hostRep}}：主催者挨拶】
-ありがとうございました！
-{{/hostGreetOn}}{{/license}}
 ということで、まずは「この大会ってなんなの？」というところを、
 選手の皆さまにもご観覧の皆さまにもお伝えできればと思います。
 
@@ -488,7 +534,8 @@ TOKYOぼーっとする大会では、毎年異なるテーマを掲げ、現代
   push(true, {at:add(c.opening, 2), stage:'', scene:'ルールの説明\n上位の決め方の説明' + (c.demoOn ? '\n{{mainShort}}様へのバトンタッチ' : ''), script:
 `さて、競技開始前に、ご観覧の皆さまにも簡単にルールの説明をさせていただきます。
 ルールはいたってシンプル。{{duration}}分間のあいだ、どれだけぼーっとしていられたかを競う、ただそれだけです。
-
+{{#shortened}}普段は競技時間を90分間で設定しておりますが、今回は多くの方に参加していただきやすいように{{duration}}分間とします。
+{{/shortened}}
 採点の仕方は、フィギアスケートのように「芸術点」と「技術点」の2種類ございます。
 まず、「芸術点」は、ご観覧の皆さまの投票によって決定します。
 選手の皆さまの服装や小道具、表情やポーズなど、どれだけ「ぼーっと」を表現しながら、{{duration}}分間楽しんでいたか。
@@ -506,7 +553,9 @@ TOKYOぼーっとする大会では、毎年異なるテーマを掲げ、現代
 そして、競技終了後「芸術点」が高かった上位{{topN}}組を選出。その中で、「技術点」が高い順に優勝、2位、3位を決定します。
 また、最もぼーっとするというコンセプトを表現できていた方には特別賞が与えられます。
 そして、特別賞、3位、2位、優勝の4組には、表彰式にて賞状と豪華賞品が授与されます！
-{{#demoOn}}
+{{^demoOn}}{{#winItem}}さらに、優勝した組には優勝トロフィーと、副賞として{{#winFrom}}{{winFrom}}様より、{{/winFrom}}{{winItem}}が贈呈されます！
+{{/winItem}}皆さま入賞目指して頑張ってください〜！
+{{/demoOn}}{{#demoOn}}
 さらに、優勝した組にはトロフィーと、
 今大会のメインスポンサーである{{mainSponsor}} 様より豪華賞品がプレゼントされます！
 
@@ -560,22 +609,19 @@ SPと呼ばれるこちらのお二人は、
 見回りの方が歩きやすいように、選手の皆さまは靴を背中側に置くようにお願いいたします。
 
 では、ここからは競技開始に先立ちまして、
-心をリラックスさせるための準備体操{{#woopsOn}}、そして『ぼーっとする大会』恒例の開会宣言{{/woopsOn}}へ移ります。
+心をリラックスさせるための準備体操、そして『ぼーっとする大会』{{#woopsOn}}恒例の開会宣言{{/woopsOn}}{{^woopsOn}}お決まりのロールバナーパフォーマンス{{/woopsOn}}へ移ります。
 この大会は「参加型パフォーマンス作品」という側面がありまして、今から行う準備体操もその一要素です。
 ということで、皆さまご起立ください。
-{{#woopsOn}}
 【{{staffBanner}}：ロールバナー設置】
-{{/woopsOn}}
 なお、このあと競技開始の合図が出たら、皆さま今の向きのまま、ステージに向かって座ってくださいね。
-それでは、お願いいたします。《★音響：F.O.》
+それでは、{{#woopsOn}}ウップスヤンさん、{{/woopsOn}}SPのお二人、お願いいたします。《★音響：F.O.》
 
 ※※※これ以降、競技開始の合図まで無音※※※
 
 【選手全員：SP主導で準備体操】
-{{#woopsOn}}（準備体操が終わったら）
-【ウップスヤン：小さい鐘を鳴らす】※アイキャッチ
-【ウップスヤン＆SP：ロールバナー】
-{{/woopsOn}}
+（準備体操が終わったら）
+【{{#woopsOn}}ウップスヤン{{/woopsOn}}{{^woopsOn}}SP{{/woopsOn}}：小さい鐘を鳴らす】※アイキャッチ
+${c.bannerLines.length ? c.bannerLines.map((_, i) => `【ロールバナー：{{bannerLine${i}}}】（想定20秒ほど）`).join('\n') : '【ロールバナー】※最後の文は「〜〜〜」'}
 （競技開始の合図が出たら）
 【{{starter}}：競技開始ホイッスル】
 
@@ -593,6 +639,7 @@ SPと呼ばれるこちらのお二人は、
 ぼーっとする{{duration}}分間。何もしないで、ぼーっとする大会ですから、歌ったり踊ったりするのはもちろん、
 ちょっとスマホを確認したり、隣の人に話しかけてみたりはNGです。笑ったり、独り言を言うのもダメ。
 目を少しだけ瞑るのは大丈夫ですが、そのまま寝てしまったらアウトです。時間を確認しようと腕時計を見るのもいけません。
+競技中は、{{patrol}}が見回りをしています。これらの行為が確認された場合は、警告を受けたり失格となってしまう場合があります。
 
 でも流石に同じ姿勢を{{duration}}分間保つのは大変ですので、横になったり伏せたりと、時々体勢を変えるのはOKです。
 ただ、あまりに頻繁に姿勢を変えると、やはり失格の対象になってしまうのでご注意ください。
@@ -685,16 +732,25 @@ SPと呼ばれるこちらのお二人は、
 
 終了で〜す！！
 どうぞ身体をほぐしたり、しゃべったり、その場で自由に体動かしてください。
-このあと、集計・採点のため20分ほどお時間を頂き、結果が出しだい、結果発表と表彰式を行います。
-その間に、おたすけカードを回収いたします。スタッフが回収しにいきますので、お渡しください。`, music:'★BGM②：F.I.\nきっかけは競技終了ホイッスル\n※煽り気味に入って、徐々に薄めに', staff:'心拍スタッフ：おたすけカードを集めて、番号順に重ねて片付ける'});
+このあと、集計・採点のため{{tallyMin}}分ほどお時間を頂き、結果が出しだい、結果発表と表彰式を行います。
+その間に、おたすけカードを回収いたします。スタッフが回収しにいきますので、お渡しください。
+{{#restroom}}なお、お手洗いは自由に行っていただいて大丈夫です。{{restroom}}にございます。
+{{/restroom}}表彰式は{{award_jp}}から始める予定ですので、それまでには戻ってきてくださいね。`, music:'★BGM②：F.I.\nきっかけは競技終了ホイッスル\n※煽り気味に入って、徐々に薄めに', staff:'心拍スタッフ：おたすけカードを集めて、番号順に重ねて片付ける'});
 
+  push(c.prizeIntroOn, {at:add(c.compEnd, 2), stage:'※MC：景品を1つずつ見せながら紹介', scene:'景品紹介', script:
+`では、この時間を使って、上位入賞者の皆さまに贈呈される豪華景品を紹介していきたいと思います！
+【MC：景品を1つずつ見せながら話す】
+
+{{prizeIntro}}`, staff:'※景品と机をステージに配置'});
+
+  const afterEnd = 2 + (c.prizeIntroOn ? 4 : 0);
   (c.sponsors || []).filter(s => s.name).forEach((s, i) => {
-    B.push({at:add(c.compEnd, 2 + i * 2), stage:'', scene:`協賛社紹介（${s.name}様）`, sponsor:i, script:
+    B.push({at:add(c.compEnd, afterEnd + i * 2), stage:'', scene:`協賛社紹介（${s.name}様）`, sponsor:i, script:
       (i === 0 ? 'では、この時間を使って、今大会の協賛社さまのご紹介をさせていただきます。\n\n' : '') + `${i + 1}社目は、__SP_NAME_${i}__様です。\n__SP_TEXT_${i}__`});
   });
 
   const nSp = (c.sponsors || []).filter(s => s.name).length;
-  push(true, {at:add(c.compEnd, 2 + nSp * 2), stage:'※MC：会場に降りて、選手にインタビュー', scene:'選手インタビュー', script:
+  push(true, {at:add(c.compEnd, afterEnd + nSp * 2), stage:'※MC：会場に降りて、選手にインタビュー', scene:'選手インタビュー', script:
 `では、この時間を使って、選手の皆さまに感想をお聞きしてみましょうか！
 
 ⚫︎質問例
@@ -807,12 +863,14 @@ function rough(c){
   const R = [];
   const push = (when, time, scene, detail = '', note = '') => { if (when) R.push({time, scene, detail, note}); };
   push(true, `${c.loadIn}〜`, (c.license ? '運営メンバー入り' : 'VISメンバー入り') + '\n→搬入', '搬入、荷下ろし、設営備品の展開');
-  push(true, c.staffIn, '当日スタッフ入り\n→設営開始', '◎担当：{{staffSetup}}\n段取りの説明\n会場設営（ステージ優先）');
+  push(true, c.staffIn, '当日スタッフ入り\n→' + (c.license ? '全体挨拶・役割説明' : '設営開始'), c.license ? '全員で集まり、全体挨拶と割り振りの確認\n各役割のやることを説明\n└このあとの段取りの確認\n└脈計測のやり方のレクチャー\n└各自着替え' : '◎担当：{{staffSetup}}\n段取りの説明\n会場設営（ステージ優先）');
+  push(c.license, c.staffIn, '設営', '◎担当：{{staffSetup}}\n当日スタッフと連携し、全体の設営を進める');
   push(true, c.castIn, 'MC・SP' + (c.woopsOn ? '・ウップスヤンさん' : '') + '入り', '演者同士での挨拶\n口頭での流れのすり合わせ・確認');
   push(true, `${c.rehearsal}〜`, 'リハーサル', '◎担当：{{staffLead}}\n演者さん＆音響さんと連携し、各シーンのリハを行う\n└音量の確認、音量調整の確認\n└開会前のアナウンスについて\n└開会式の流れ確認、通してやる\n└競技中のアナウンスについて\n└表彰式の流れ確認、通してやる');
   push(c.experienceOn, `${c.taikenStart}〜${c.taikenEnd}`, 'ぼーっと体験会', '◎担当：当日スタッフで割り振り\nぼーっと体験会の運営\n└呼び込み\n└受付・誘導\n└心拍計測\n└時間管理', '※運営スタッフは随時休憩');
   push(true, c.announceStart, 'アナウンス開始', 'イベントの案内や呼び込みのアナウンスを適宜入れていく' + (c.charOn ? '\n※{{charName}}登場' : ''));
-  push(true, `${c.receptionStart}〜${c.receptionEnd}`, '事前登録者の受付' + (c.lotteryOn ? '\n当日エントリーの受付' : ''), '◎受付開始\nリスト確認〜ゼッケン等配布〜心拍チェック〜待機誘導');
+  push(true, `${c.receptionStart}〜${c.receptionEnd}`, '事前登録者の受付' + (c.lotteryOn && !c.sameDayLater ? '\n当日エントリーの受付' : ''), '◎受付開始\nリスト確認〜ゼッケン等配布〜心拍チェック〜待機誘導');
+  push(c.sameDayLater, `${c.sameDayStart}〜${c.receptionEnd}`, '当日エントリーの受付', '', '＊競技場の状況見てアナウンス');
   push(c.lotteryOn, c.lottery, '当日エントリーの抽選発表');
   push(c.lotteryOn, c.sameDayDeadline, '当日参加者の受付終了');
   push(true, c.opening, '開会式', '◎開会式 準備体操', '＊審査員動きサポート\n＊心拍数計測\n＊面白い参加者⇔パネル（参加動機）チェック\n＊投票呼びかけ\n＊脱落者インタビュー');

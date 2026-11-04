@@ -25,10 +25,10 @@
 
 <dialog id="newDlg">
   <h2>新しい大会台本を作る</h2>
-  <p>開催の形を選んでください。あとから切り替えることもできます。</p>
+  <p>開催の形を選んでください。あとから切り替えることもできます（切り替えても入力内容はそのままです）。</p>
   <div class="tk-choice">
     <button class="template-card" data-new="own"><strong>自社主催</strong><span>TOKYO大会のようにVISが主催する大会。第4回TOKYO大会の内容が入った状態で始まります。</span></button>
-    <button class="template-card" data-new="license"><strong>ライセンスアウト</strong><span>企業・団体が主催する大会。主催者名や主催者挨拶の枠が入り、○○の部分を埋めていきます。</span></button>
+    <button class="template-card" data-new="license"><strong>ライセンスアウト</strong><span>企業・施設が主催する特別版の大会。テレビ朝日・イオンの台本をもとにした内容で始まり、○○の部分を埋めていきます。</span></button>
   </div>
   <div class="actions"><button class="btn btn-secondary" id="newCancel">キャンセル</button></div>
 </dialog>
@@ -68,7 +68,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const clone = o => JSON.parse(JSON.stringify(o));
 const FIELDS = Object.fromEntries(SECTIONS.flatMap(s => s.fields.map(f => [f.k, {...f, section:s.id}])));
 /* 計算で出す項目は、元になった入力項目に飛ぶ */
-const ALIAS = {compEnd:'duration', countdown:'duration', closeTime:'award', lotteryGather:'lottery', dateLabel:'date'};
+const ALIAS = {compEnd:'duration', countdown:'duration', closeTime:'award', lotteryGather:'lottery', dateLabel:'date', tallyMin:'award', patrol:'woopsOn'};
 
 /* ---------- 状態 ---------- */
 let state = load();
@@ -118,7 +118,7 @@ function fill(tpl, c, html){
   const out = s.split(/(\{\{\w+\}\}|__SP_(?:NAME|TEXT)_\d+__)/).map(p => {
     let k, val, label;
     if ((m = /^\{\{(\w+)\}\}$/.exec(p))){
-      const base = m[1].replace(/_jp$/, '');
+      const base = m[1].replace(/_jp$/, '').replace(/^bannerLine\d+$/, 'bannerText');
       k = ALIAS[base] || base; val = c[m[1]];
       label = FIELDS[k]?.label || k;
     } else if ((m = /^__SP_(NAME|TEXT)_(\d+)__$/.exec(p))){
@@ -140,7 +140,8 @@ function fill(tpl, c, html){
 }
 
 function ctx(d){
-  const c = computed({...d.vars, mode:d.mode});
+  /* あとから増えた項目は初期値で補う */
+  const c = computed({...defaults(d.mode), ...d.vars, mode:d.mode});
   c.sponsorsF = (d.vars.sponsors || []).filter(s => s.name);
   return c;
 }
@@ -187,7 +188,7 @@ function renderEmpty(){
       <p>毎回入れている定型の台詞はそのままに、日時・会場・テーマ・スポンサーなど変わる部分だけを入力して台本を作ります。</p>
       <div class="template-grid">
         <button class="template-card" data-new="own"><strong>自社主催</strong><span>第4回TOKYO大会の内容が入った状態で始まります</span></button>
-        <button class="template-card" data-new="license"><strong>ライセンスアウト</strong><span>主催者名・主催者挨拶の枠つき。○○の部分を埋めていきます</span></button>
+        <button class="template-card" data-new="license"><strong>ライセンスアウト</strong><span>テレビ朝日・イオンの台本をもとに、○○の部分を埋めていきます</span></button>
       </div>
     </div>`;
 }
@@ -259,13 +260,11 @@ function docHTML(d, {split = false} = {}){
   const c = ctx(d);
   const F = t => fill(t, c, true);
   const B = blocks(c), R = rough(c);
-  const credit = d.mode === 'license' ? `<p class="tk-credit">主催：${F('{{hostName}}')}　監修：WOOPSYANG COMPANY　協力：株式会社VIS</p>` : '';
   return `
   <article class="tk-doc" id="doc">
     <header class="tk-doc-head">
       <h2>${F('{{name}}')}</h2>
       <p>${F('{{dateLabel}}')}　＠${F('{{facility}}')}　${F('{{venue}}')}</p>
-      ${credit}
     </header>
     <h3 class="tk-doc-h">【当日ラフスケジュール】</h3>
     <table class="tk-table tk-rough">
@@ -472,6 +471,7 @@ window.addEventListener('hashchange', () => { if (location.hash.startsWith('#d='
     shared = {id:'shared', mode, vars:{...defaults(mode), ...data.v}, updatedAt:Date.now()};
     document.title = (shared.vars.name || 'ぼーっとする大会') + '｜共有された台本';
   }
+  state.drafts.forEach(d => { d.vars = {...defaults(d.mode), ...d.vars}; });
   if (!shared && !state.currentId && state.drafts[0]) state.currentId = state.drafts[0].id;
   render();
 })();
